@@ -6,6 +6,8 @@ import numpy as np
 
 import maafa
 
+from matplotlib import pyplot as plt
+
 
 class PendulumDynamics(maafa.Dynamics):
     def __init__(self, dt=0.05):
@@ -62,3 +64,23 @@ class PendulumDynamics(maafa.Dynamics):
         partial_dth = torch.stack([th_res_partial_dth, dth_res_partial_dth]).transpose(1, 0)
         partial_u = torch.stack([th_res_partial_u, dth_res_partial_u]).transpose(1, 0)
         return torch.stack([partial_th, partial_dth, partial_u]).transpose(0, 1).transpose(1, 2)
+
+
+    def get_frame(self, x, ax=None):
+        x = x.view(-1)
+        assert len(x) == 2
+        th, dth = torch.unbind(x)
+        g, m, l = torch.unbind(self.params)
+
+        x = np.sin(th)*l
+        y = np.cos(th)*l
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(6,6))
+        else:
+            fig = ax.get_figure()
+
+        ax.plot((0,x), (0, y), color='k')
+        ax.set_xlim((-l*1.2, l*1.2))
+        ax.set_ylim((-l*1.2, l*1.2))
+        return fig, ax

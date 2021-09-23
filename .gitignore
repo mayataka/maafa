@@ -2,3 +2,5 @@ __pycache__/
 .ipynb_checkpoints
 .vscode/
 .DS_Store/
+*.png
+*.mp4
