@@ -11,12 +11,12 @@ import os
 import io
 import base64
 import tempfile
-from IPython.display import HTML
 
 
 import maafa
 from pendulum.dynamics import PendulumDynamics
 from pendulum.cost import PendulumTerminalCost, PendulumStageCost
+from pendulum.params import PendulumParams
 
 
 import matplotlib
@@ -25,35 +25,7 @@ import matplotlib.pyplot as plt
 plt.style.use('bmh')
 
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-def train(env, mpc, x0, steps):
-    log_prob_actions = []
-    values = []
-    rewards = []
-    episode_reward = 0
-
-    MPC_kkt_tol = 1.0e-04
-    MPC_iter_max = 10
-    learning_rate = 0.01
-
-    optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-
-    x = x0
-    for t in range(steps):
-        u = mpc.mpc_step(x, MPC_iter_max)
-        x1 = env.eval(x, u)
-        TD_error = mpc.forward(x, x1, u, MPC_kkt_tol, MPC_iter_max)
-        optimizer.zero_grad()
-        TD_error.backward()
-        optimizer.step()
-
-
 if __name__ == '__main__':
-    SIM_MODE = 'ACCURATE' 
-    # SIM_MODE = 'INACCURATE' 
-    # SIM_MODE = 'Q-LEARNING' 
-
     # number of the batch MPC simulations
     nbatch = 16
 
@@ -66,26 +38,18 @@ if __name__ == '__main__':
     terminal_cost = PendulumTerminalCost()
     stage_cost = PendulumStageCost(dt, discount_factor)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch)
+
     print(list(mpc.parameters()))
 
     # initial states
     torch.manual_seed(0)
     x0 = np.pi*torch.rand(nbatch, dynamics.dimx)
-    xmin = torch.Tensor([-np.pi, -1.])
-    xmax = torch.Tensor([np.pi, 1.])
-    x0 = torch.clamp(x0, xmin, xmax)
 
     # simulation model
-    if SIM_MODE == 'INACCURATE' or SIM_MODE == 'Q-LEARNING':
-        params = torch.Tensor((1.0, 2.5, 2.0))
-    else:
-        params=None
-    model = PendulumDynamics(dt, params=params)
+    model = PendulumDynamics(dt)
 
-    steps = 1000
-    train(model, mpc, x0, steps)
-    print(list(mpc.parameters()))
-
+    # Dynamics and cost params
+    params = PendulumParams()
 
     # MPC simulation 
     sim_time = 5.
@@ -96,7 +60,7 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u = mpc.mpc_step(x, iter_max=MPC_iter_max)
+        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max, verbose=True)
         urand = u + torch.rand(nbatch, dynamics.dimu)
         x1 = model.eval(x, u)
         x = x1

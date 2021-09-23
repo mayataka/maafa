@@ -7,59 +7,98 @@ from maafa import utils
 
 
 class PendulumTerminalCost(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, params=None):
         super(PendulumTerminalCost, self).__init__()
-        self.xref_true = torch.Tensor([0., 0.])
-        self.xweight_true = torch.Tensor([[1., 0.], [0., 0.1,]])
-        self.xref = torch.nn.Parameter(self.xref_true) 
-        self.xweight = torch.nn.Parameter(self.xweight_true)
-        # self.xref = Variable(self.xref_true) 
-        # self.xweight = Variable(self.xweight_true)
+        self.default_xfref = torch.Tensor([0., 0.])
+        self.default_xfweight = torch.Tensor([[1., 0.], [0., 0.1,]])
+        if params is not None:
+            if params.xfref is not None:
+                self.xfref = params.xfref
+            else:
+                self.xfref = Variable(self.default_xfref) 
+            if params.xfweight is not None:
+                self.xfweight = params.xfweight
+            else:
+                self.xfweight = Variable(self.default_xfweight) 
+        else: 
+            self.xfref = Variable(self.default_xfref) 
+            self.xfweight = Variable(self.default_xfweight) 
 
-    def eval(self, x):
+    def set_params(self, params):
+        if params is not None and params.xfref is not None:
+            self.xfref = params.xfref
+        else:
+            self.xfref = Variable(self.xfref)
+        if params is not None and params.xfweight is not None:
+            self.xfweight = params.xfweight
+        else:
+            self.xfweight = Variable(self.xfweight)
+
+    def eval(self, x, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
-        if x.is_cuda and not self.xref.is_cuda:
-            self.xref = self.xref.cuda()
-            self.xweight = self.xweight.cuda()
-        xdiff = x - self.xref
-        Wxdiff = self.xweight.mm(xdiff.transpose(0, 1)).transpose(1, 0)
+        self.set_params(params)
+        if x.is_cuda and not self.xfref.is_cuda:
+            self.xfref = self.xfref.cuda()
+            self.xfweight = self.xfweight.cuda()
+        xdiff = x - self.xfref
+        Wxdiff = self.xfweight.mm(xdiff.transpose(0, 1)).transpose(1, 0)
         return 0.5 * torch.stack([xdiff[i].dot(Wxdiff[i]) for i in range(x.shape[0])])
 
-    def eval_sens(self, x):
+    def eval_sens(self, x, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
-        if x.is_cuda and not self.xref.is_cuda:
-            self.xref = self.xref.cuda()
-            self.xweight = self.xweight.cuda()
-        xdiff = x - self.xref
-        return self.xweight.mm(xdiff.transpose(0, 1)).transpose(1, 0)
+        self.set_params(params)
+        if x.is_cuda and not self.xfref.is_cuda:
+            self.xfref = self.xfref.cuda()
+            self.xfweight = self.xfweight.cuda()
+        xdiff = x - self.xfref
+        return self.xfweight.mm(xdiff.transpose(0, 1)).transpose(1, 0)
 
-    def eval_hess(self, x):
+    def eval_hess(self, x, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
-        if x.is_cuda and not self.xref.is_cuda:
-            self.xref = self.xref.cuda()
-            self.xweight = self.xweight.cuda()
-        return torch.stack([self.xweight for i in range (x.shape[0])]) 
+        self.set_params(params)
+        if x.is_cuda and not self.xfref.is_cuda:
+            self.xfref = self.xfref.cuda()
+            self.xfweight = self.xfweight.cuda()
+        return torch.stack([self.xfweight for i in range (x.shape[0])]) 
 
-    def forward(self, x):
-        return self.eval(x)
+    def forward(self, x, params=None):
+        return self.eval(x, params)
 
 
 class PendulumStageCost(torch.nn.Module):
-    def __init__(self, dt, gamma):
+    def __init__(self, dt, gamma, params=None):
         super(PendulumStageCost, self).__init__()
         self.dt = dt
         self.gamma = gamma
-        self.xuref_true = torch.Tensor([0., 0., 0.])
-        self.xuweight_true = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
-        self.xuref = torch.nn.Parameter(self.xuref_true) 
-        self.xuweight = torch.nn.Parameter(self.xuweight_true)
-        # self.xuref = Variable(self.xuref_true) 
-        # self.xuweight = Variable(self.xuweight_true)
+        self.default_xuref = torch.Tensor([0., 0., 0.])
+        self.default_xuweight = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
+        if params is not None:
+            if params.xuref is not None:
+                self.xuref = params.xuref
+            else:
+                self.xuref = Variable(self.default_xuref) 
+            if params.xuweight is not None:
+                self.xuweight = params.xuweight
+            else:
+                self.xuweight = Variable(self.default_xuweight) 
+        else: 
+            self.xuref = Variable(self.default_xuref) 
+            self.xuweight = Variable(self.default_xuweight) 
 
-    def eval(self, x, u, stage):
+    def set_params(self, params):
+        if params is not None and params.xuref is not None:
+            self.xuref = params.xuref
+        else:
+            self.xuref = Variable(self.xuref)
+        if params is not None and params.xuweight is not None:
+            self.xuweight = params.xuweight
+        else:
+            self.xuweight = Variable(self.xuweight)
+
+    def eval(self, x, u, stage, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
@@ -69,6 +108,7 @@ class PendulumStageCost(torch.nn.Module):
         assert u.shape[1] == 1
         assert u.dim() == 2
         assert stage >= 0
+        self.set_params(params)
         if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
             self.xuweight = self.xuweight.cuda()
@@ -78,7 +118,7 @@ class PendulumStageCost(torch.nn.Module):
         discount = self.gamma**stage
         return discount * self.dt * 0.5 * torch.stack([xudiff[i].dot(Wxudiff[i]) for i in range(x.shape[0])])
 
-    def eval_sens(self, x, u, stage):
+    def eval_sens(self, x, u, stage, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
@@ -87,6 +127,7 @@ class PendulumStageCost(torch.nn.Module):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
+        self.set_params(params)
         if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
             self.xuweight = self.xuweight.cuda()
@@ -95,7 +136,7 @@ class PendulumStageCost(torch.nn.Module):
         discount = self.gamma**stage
         return discount * self.dt * self.xuweight.mm(xudiff.transpose(0, 1)).transpose(1, 0)
 
-    def eval_hess(self, x, u, stage):
+    def eval_hess(self, x, u, stage, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
@@ -104,11 +145,12 @@ class PendulumStageCost(torch.nn.Module):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
+        self.set_params(params)
         if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
             self.xuweight = self.xuweight.cuda()
         discount = self.gamma**stage
         return discount * self.dt * torch.stack([self.xuweight for i in range (x.shape[0])]) 
 
-    def forward(self, x, u, stage):
-        return self.eval(x, u, stage)
+    def forward(self, x, u, stage, params=None):
+        return self.eval(x, u, stage, params)

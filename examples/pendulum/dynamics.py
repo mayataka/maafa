@@ -17,13 +17,13 @@ class PendulumDynamics(torch.nn.Module):
         self.dimu = 1
         self.dt = dt
         # gravity (g), mass (m), length (l)
-        # self.params = Variable(torch.Tensor((10., 1., 1.)))
-        if params is not None:
-            self.params = torch.nn.Parameter(params)
+        self.default_params = Variable(torch.Tensor((10., 1., 1.)))
+        if params is not None and params.dyn_params is not None:
+            self.params = params.dyn_params
         else:
-            self.params = torch.nn.Parameter(torch.Tensor((10., 1., 1.)))
+            self.params = self.default_params
 
-    def eval(self, x, u):
+    def eval(self, x, u, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
@@ -32,6 +32,10 @@ class PendulumDynamics(torch.nn.Module):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
+        if params is not None and params.dyn_params is not None:
+            self.params = params.dyn_params
+        else:
+            self.params = Variable(self.params)
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
         g, m, l = torch.unbind(self.params)
@@ -42,7 +46,7 @@ class PendulumDynamics(torch.nn.Module):
         dth_res = dth + self.dt * ddth 
         return torch.stack([th_res, dth_res]).transpose(1, 0).squeeze(-1)
 
-    def eval_sens(self, x, u):
+    def eval_sens(self, x, u, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
@@ -51,6 +55,10 @@ class PendulumDynamics(torch.nn.Module):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
+        if params is not None and params.dyn_params is not None:
+            self.params = params.dyn_params
+        else:
+            self.params = Variable(self.params)
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
         nbatch = x.shape[0]
@@ -68,11 +76,11 @@ class PendulumDynamics(torch.nn.Module):
         partial_u = torch.stack([th_res_partial_u, dth_res_partial_u]).transpose(1, 0)
         return torch.stack([partial_th, partial_dth, partial_u]).transpose(0, 1).transpose(1, 2)
 
-    def eval_hess(self, x, u):
+    def eval_hess(self, x, u, parms=None):
         return NotImplementedError()
 
-    def forward(self, x, u):
-        return self.eval(x, u)
+    def forward(self, x, u, params=None):
+        return self.eval(x, u, params)
 
     def get_frame(self, x, ax=None):
         x = x.view(-1)

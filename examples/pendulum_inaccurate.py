@@ -11,12 +11,12 @@ import os
 import io
 import base64
 import tempfile
-from IPython.display import HTML
 
 
 import maafa
 from pendulum.dynamics import PendulumDynamics
 from pendulum.cost import PendulumTerminalCost, PendulumStageCost
+from pendulum.params import PendulumParams
 
 
 import matplotlib
@@ -44,14 +44,15 @@ if __name__ == '__main__':
     # initial states
     torch.manual_seed(0)
     x0 = np.pi*torch.rand(nbatch, dynamics.dimx)
-    xmin = torch.Tensor([-np.pi, -1.])
-    xmax = torch.Tensor([np.pi, 1.])
-    x0 = torch.clamp(x0, xmin, xmax)
 
     # simulation model
-    params = torch.Tensor((1.0, 2.5, 2.0))
-    model = PendulumDynamics(dt, params=params)
+    params_true = PendulumParams()
+    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0))
+    model = PendulumDynamics(dt, params=params_true)
     print(list(model.parameters()))
+
+    # Dynamics and cost params
+    params = PendulumParams()
 
     # MPC simulation 
     sim_time = 5.
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u = mpc.mpc_step(x, iter_max=MPC_iter_max, verbose=True)
+        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max, verbose=True)
         urand = u + torch.rand(nbatch, dynamics.dimu)
         x1 = model.eval(x, u)
         x = x1
