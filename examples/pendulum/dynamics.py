@@ -7,7 +7,7 @@ import numpy as np
 import maafa
 
 
-class PendulumDynamics(maafa.dynamics.Dynamics):
+class PendulumDynamics(maafa.Dynamics):
     def __init__(self, dt=0.05):
         super().__init__()
         self.dimx = 2

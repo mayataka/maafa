@@ -6,7 +6,7 @@ import maafa
 from maafa import utils
 
 
-class PendulumTerminalCost(maafa.cost.TerminalCost):
+class PendulumTerminalCost(maafa.TerminalCost):
     def __init__(self):
         super().__init__()
         self.xref_true = torch.Tensor([0., 0.])
@@ -47,7 +47,7 @@ class PendulumTerminalCost(maafa.cost.TerminalCost):
         return NotImplementedError()
 
 
-class PendulumStageCost(maafa.cost.StageCost):
+class PendulumStageCost(maafa.StageCost):
     def __init__(self, dt, gamma):
         super().__init__()
         self.dt = dt
