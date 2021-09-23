@@ -10,14 +10,18 @@ import maafa
 from matplotlib import pyplot as plt
 
 
-class PendulumDynamics(maafa.Dynamics):
-    def __init__(self, dt=0.05):
-        super().__init__()
+class PendulumDynamics(torch.nn.Module):
+    def __init__(self, dt=0.05, params=None):
+        super(PendulumDynamics, self).__init__()
         self.dimx = 2
         self.dimu = 1
         self.dt = dt
         # gravity (g), mass (m), length (l)
-        self.params = Variable(torch.Tensor((10., 1., 1.)))
+        # self.params = Variable(torch.Tensor((10., 1., 1.)))
+        if params is not None:
+            self.params = torch.nn.Parameter(params)
+        else:
+            self.params = torch.nn.Parameter(torch.Tensor((10., 1., 1.)))
 
     def eval(self, x, u):
         if x.dim() == 1:
@@ -75,13 +79,14 @@ class PendulumDynamics(maafa.Dynamics):
         assert len(x) == 2
         th, dth = torch.unbind(x)
         g, m, l = torch.unbind(self.params)
-        x = np.sin(th)*l
-        y = np.cos(th)*l
+        x = torch.sin(th)*l
+        y = torch.cos(th)*l
         if ax is None:
             fig, ax = plt.subplots(figsize=(6,6))
         else:
             fig = ax.get_figure()
-        ax.plot((0,x), (0, y), color='k')
+        ax.plot((0, x.detach().numpy()), (0, y.detach().numpy()), color='k')
+        l = l.detach().numpy()
         ax.set_xlim((-l*1.2, l*1.2))
         ax.set_ylim((-l*1.2, l*1.2))
         return fig, ax

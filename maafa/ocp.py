@@ -65,7 +65,7 @@ class OCP(nn.Module):
                 kkt = self.eval_kkt(x0, x, u, lmd)
                 kkt_error = kkt.get_kkt_error()
             if verbose:
-                print('KKT error at ' + str(i) + 'th iter = ' + str(kkt_error))
+                print('KKT error at ' + str(i+1) + 'th iter = ' + str(kkt_error))
         return x, u, lmd
 
     def eval_Q_kkt(self, x0, u0, x, u, lmd, gmm):
@@ -92,7 +92,7 @@ class OCP(nn.Module):
                 kkt = self.eval_Q_kkt(x0, u0, x, u, lmd, gmm)
                 kkt_error = kkt.get_Q_kkt_error()
             if verbose:
-                print('Q-KKT error at ' + str(i) + 'th iter = ' + str(kkt_error))
+                print('Q-KKT error at ' + str(i+1) + 'th iter = ' + str(kkt_error))
         return x, u, lmd, gmm
 
     # Comptues Q function and returns TD error

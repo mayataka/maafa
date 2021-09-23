@@ -6,13 +6,15 @@ import maafa
 from maafa import utils
 
 
-class PendulumTerminalCost(maafa.TerminalCost):
+class PendulumTerminalCost(torch.nn.Module):
     def __init__(self):
-        super().__init__()
+        super(PendulumTerminalCost, self).__init__()
         self.xref_true = torch.Tensor([0., 0.])
         self.xweight_true = torch.Tensor([[1., 0.], [0., 0.1,]])
-        self.xref = Variable(self.xref_true) 
-        self.xweight = Variable(self.xweight_true)
+        self.xref = torch.nn.Parameter(self.xref_true) 
+        self.xweight = torch.nn.Parameter(self.xweight_true)
+        # self.xref = Variable(self.xref_true) 
+        # self.xweight = Variable(self.xweight_true)
 
     def eval(self, x):
         if x.dim() == 1:
@@ -45,15 +47,17 @@ class PendulumTerminalCost(maafa.TerminalCost):
         return self.eval(x)
 
 
-class PendulumStageCost(maafa.StageCost):
+class PendulumStageCost(torch.nn.Module):
     def __init__(self, dt, gamma):
-        super().__init__()
+        super(PendulumStageCost, self).__init__()
         self.dt = dt
         self.gamma = gamma
         self.xuref_true = torch.Tensor([0., 0., 0.])
         self.xuweight_true = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
-        self.xuref = Variable(self.xuref_true) 
-        self.xuweight = Variable(self.xuweight_true)
+        self.xuref = torch.nn.Parameter(self.xuref_true) 
+        self.xuweight = torch.nn.Parameter(self.xuweight_true)
+        # self.xuref = Variable(self.xuref_true) 
+        # self.xuweight = Variable(self.xuweight_true)
 
     def eval(self, x, u, stage):
         if x.dim() == 1:

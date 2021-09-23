@@ -24,51 +24,27 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.style.use('bmh')
 
+def learning()
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+EPOCH_NUM = 3000
+STEP_MAX = 200
 
-def train(env, mpc, x0, optimizer, discount_factor):
-    log_prob_actions = []
-    values = []
-    rewards = []
-    done = False
-    episode_reward = 0
+EPOCH_NUM = 3000 # エポック数
+STEP_MAX = 200 # 最高ステップ数
+MEMORY_SIZE = 200 # メモリサイズいくつで学習を開始するか
+BATCH_SIZE = 50 # バッチサイズ
+EPSILON = 1.0 # ε-greedy法
+EPSILON_DECREASE = 0.001 # εの減少値
+EPSILON_MIN = 0.1 # εの下限
+START_REDUCE_EPSILON = 200 # εを減少させるステップ数
+TRAIN_FREQ = 10 # Q関数の学習間隔
+UPDATE_TARGET_Q_FREQ = 20 # Q関数の更新間隔
+GAMMA = 0.97 # 割引率
+LOG_FREQ = 1000 # ログ出力の間隔
 
-    MPC_kkt_tol = 1.0e-04
-    MPC_iter_max = 10
-
-#     while not done:
-#         u = mpc.mpc_step(x, MPC_iter_max)
-#         x1 = env.eval(x, u)
-#         TD_error = mpc.forward(x, x1, u, MPC_kkt_tol, MPC_iter_max)
-
-#         action_pred, value_pred = actor_critic(state)
-#         action_prob = F.softmax(action_pred, dim=-1)
-#         dist = distributions.Categorical(action_prob)
-#         action = dist.sample()
-#         log_prob_action = dist.log_prob(action)
-#         state, reward, done, _ = env.step(action.item())
-
-#         log_prob_actions.append(log_prob_action)
-#         values.append(value_pred)
-#         rewards.append(reward)
-#         episode_reward += reward
-
-#     log_prob_actions = torch.cat(log_prob_actions)
-#     values = torch.cat(values).squeeze(-1)
-
-#     returns = calculate_returns(rewards, discount_factor)
-
-#     policy_loss, value_loss = update_policy(returns, log_prob_actions, values, optimizer)
-
-#     return policy_loss, value_loss, episode_reward
 
 
 if __name__ == '__main__':
-    SIM_MODE = 'ACCURATE' 
-    # SIM_MODE = 'INACCURATE' 
-    # SIM_MODE = 'Q-LEARNING' 
-
     # number of the batch MPC simulations
     nbatch = 16
 
@@ -76,12 +52,11 @@ if __name__ == '__main__':
     T = 0.5
     N = 10
     dt = T / N
-    discount_factor = 0.99 
+    gamma = 1.0 # discount factor
     dynamics = PendulumDynamics(dt)
     terminal_cost = PendulumTerminalCost()
-    stage_cost = PendulumStageCost(dt, discount_factor)
+    stage_cost = PendulumStageCost(dt, gamma)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch)
-    print(list(mpc.parameters()))
 
     # initial states
     torch.manual_seed(0)
@@ -91,17 +66,14 @@ if __name__ == '__main__':
     x0 = torch.clamp(x0, xmin, xmax)
 
     # simulation model
-    if SIM_MODE == 'INACCURATE' or SIM_MODE == 'Q-LEARNING':
-        params = torch.Tensor((1.0, 2.5, 2.0))
-    else:
-        params=None
-    model = PendulumDynamics(dt, params=params)
-    print(list(model.parameters()))
+    model = PendulumDynamics(dt)
+    true_params = torch.Tensor((1.0, 2.5, 2.0))
+    model.params = true_params
 
     # MPC simulation 
     sim_time = 5.
     sim_step = math.floor(sim_time / dt)
-    MPC_iter_max = 10
+    MPC_iter_max = 5
     x = x0
     tmp_dir = tempfile.mkdtemp()
     print('Tmp dir: {}'.format(tmp_dir))
@@ -124,7 +96,7 @@ if __name__ == '__main__':
         plt.close(fig)
 
     # save video
-    vid_fname = 'pendulum.mp4'
+    vid_fname = 'pendulum_Q_learning.mp4'
     if os.path.exists(vid_fname):
         os.remove(vid_fname)
     cmd = 'ffmpeg -r 16 -f image2 -i {}/%03d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {}'.format(
