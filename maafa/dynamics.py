@@ -4,22 +4,21 @@ import abc
 
 
 class Dynamics(nn.Module, metaclass=abc.ABCMeta):
-    def __init__(self, dt):
+    def __init__(self):
         super().__init__()
-        self.dt = dt
 
-    @abc.abstractclassmethod
-    def eval(self, x, u, x_res):
-        return NotImplementedError()
+    # @abc.abstractclassmethod 
+    # def eval(self, x, u):
+    #     return NotImplementedError()
 
-    @abc.abstractclassmethod
-    def eval_sens(self, x, u, A, B):
-        return NotImplementedError()
-
-    # @abc.abstractclassmethod
-    # def eval_hess(self, x, u, lmd, Qxx, Qxu, Quu):
+    # @abc.abstractclassmethod 
+    # def eval_sens(self, x, u):
     #     return NotImplementedError()
 
     # @abc.abstractclassmethod
-    # def eval_param_sens(self, x, u, dp):
+    # def eval_hess(self, x, u, lmd):
+    #     return NotImplementedError()
+
+    # @abc.abstractclassmethod
+    # def eval_param_sens(self, x, u):
     #     return NotImplementedError()

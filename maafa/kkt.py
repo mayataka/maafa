@@ -4,57 +4,42 @@ import math
 
 
 class KKT(object):
-    def __init__(self, N, l, lxu, Q, x0res, xres, F):
+    def __init__(self, l, lxu, Q, x0res, xres, F):
         super().__init__()
-        self.nbatch = l.shape[0]
-        assert l.dim() == 2
-        assert lxu.dim() == 3
-        assert Q.dim() == 4
-        assert xres.dim() == 3
-        assert F.dim() == 4
-        self.N = N
+        self.nbatch = l[0].shape[0]
+        self.N = len(l)-1
         self.l = l
         self.lxu = lxu
         self.Q = Q
         self.x0res = x0res
         self.xres = xres
         self.F = F
+        self.dimx = F[0].shape[1]
 
     def get_stage_kkt_block(self, stage):
-        nx = self.nx
         if stage == self.N:
-            QxxN = self.Q[stage, :, :nx, :nx]
-            lxN = self.lxu[stage, :, :nx]
-            return QxxN, lxN
+            return self.Q[stage], self.lxu[stage]
         else:
-            Q = self.Q[stage, :, :]
-            lxu = self.lxu[stage, :]
-            F = self.F[stage, :, :]
-            xres = self.xres[stage, :]
-            return Q, lxu, F, xres
+            return self.Q[stage], self.lxu[stage], self.F[stage], self.xres[stage]
 
     def get_stage_kkt(self, stage):
-        nx = self.nx
+        dimx = self.dimx
         if stage == self.N:
-            QxxN = self.Q[stage, :, :nx, :nx]
-            lxN = self.lxu[stage, :, :nx]
-            return QxxN, lxN
+            return self.Q[stage], self.lxu[stage]
         else:
-            Qxx = self.Q[stage, :, :nx, :nx]
-            Qxu = self.Q[stage, :, :nx, nx:]
-            Quu = self.Q[stage, :, nx:, nx:]
-            lx = self.lxu[stage, :, :nx]
-            lu = self.lxu[stage, :, nx:]
-            A = self.F[stage, :, :, :nx]
-            B = self.F[stage, :, :, nx:]
-            xres = self.xres[stage, :, :]
+            Qxx = self.Q[stage][:, :dimx, :dimx]
+            Qxu = self.Q[stage][:, :dimx, dimx:]
+            Quu = self.Q[stage][:, dimx:, dimx:]
+            lx = self.lxu[stage][:, :dimx]
+            lu = self.lxu[stage][:, dimx:]
+            A, B, xres = self.get_stage_lin_dynamics(stage)
             return Qxx, Qxu, Quu, lx, lu, A, B, xres
 
     def get_stage_lin_dynamics(self, stage):
-        nx = self.nx
-        A = self.F[stage, :, :, :nx]
-        B = self.F[stage, :, :, nx:]
-        xres = self.xres[stage, :, :]
+        dimx = self.dimx
+        A = self.F[stage][:, :, :dimx]
+        B = self.F[stage][:, :, dimx:]
+        xres = self.xres[stage]
         return A, B, xres
 
     def kkt_error(self):

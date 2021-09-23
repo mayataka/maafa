@@ -15,16 +15,11 @@ class OCP(nn.Module):
         self.dynamics = dynamics
         self.stage_cost = stage_cost
         self.terminal_cost = terminal_cost
-        self.nx = dynamics.nx
-        self.nu = dynamics.nu
+        self.dimx = dynamics.dimx
+        self.dimu = dynamics.dimu
         self.N = N
         self.GaussNewton = GaussNewton
         self.riccati_recursion = RiccatiRecursion(dynamics, N)
-        nx = dynamics.nx()
-        nu = dynamics.nu()
-        # self.x = torch.zeros(N+1, nbatch, nx) 
-        # self.u = torch.zeros(N, nbatch, nu) 
-        # self.lmd = torch.zeros(N+1, nbatch, nx) 
 
     def eval_kkt(self, x0, x, u, lmd):
         nbatch = x.shape[0]
@@ -33,25 +28,25 @@ class OCP(nn.Module):
             u = u.unsqueeze(0)
             lmd = lmd.unsqueeze(0)
         N = self.N
-        x0res = [x[i][0] - x0 for i in range(nbatch)]
+        x0res = x[0] - x0 
         l = []
         lxu = []
         Q = []
         xres = []
         F = []
         for i in range(N):
-            l.append(self.stage_cost.eval(x[i], u[i]))
-            lxu.append(self.stage_cost.eval_sens(x[i], u[i]))
-            Q.append(self.stage_cost.eval_hess(x[i], u[i]))
-            xres.append(self.dynamics.eval(x[i], u[i], x[i+1]))
+            l.append(self.stage_cost.eval(x[i], u[i], i))
+            lxu.append(self.stage_cost.eval_sens(x[i], u[i], i))
+            Q.append(self.stage_cost.eval_hess(x[i], u[i], i))
+            xres.append(self.dynamics.eval(x[i], u[i]) - x[i+1])
             F.append(self.dynamics.eval_sens(x[i], u[i]))  
             lxu[-1] += utils.bmv(F[-1].transpose(1, 2), lmd[i+1]) 
             if not self.GaussNewton:
                 Q[-1] += self.dynamics.eval_hess(x[i], u[i], lmd[i+1]) 
         l.append(self.terminal_cost.eval(x[N])) 
         lxu.append(self.terminal_cost.eval_sens(x[N])) 
-        Q.append(self.terminal_cost.eval_hess(x[N])) 
-        return KKT(N, l, lxu, Q, x0res, xres, F)
+        Q.append(self.terminal_cost.eval_hess(x[N]))
+        return KKT(l, lxu, Q, x0res, xres, F)
 
     def newton_iteration(self, x0, x, u, lmd):
         kkt = self.eval_kkt(x0, x, u, lmd)

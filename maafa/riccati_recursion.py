@@ -5,8 +5,8 @@ from . import utils
 class RiccatiRecursion(object):
     def __init__(self, dynamics, N):
         super().__init__()
-        self.nx = dynamics.nx
-        self.nu = dynamics.nu
+        self.dimx = dynamics.dimx
+        self.dimu = dynamics.dimu
         self.N = N
 
     def riccati_recursion(self, kkt):
@@ -15,7 +15,7 @@ class RiccatiRecursion(object):
         return dx, du, dlmd
 
     def backward_riccati_recursion(self, kkt):
-        nx = self.nx
+        dimx = self.dimx
         N = self.N
         P = []
         s = []
@@ -28,19 +28,22 @@ class RiccatiRecursion(object):
         for i in range(N-1, -1, -1):
             Q, lxu, F, xres = kkt.get_stage_kkt_block(i)
             Ft = F.transpose(1, 2)
+            print("F: ", F)
+            print("Ft: ", Ft)
+            print("Q: ", Q)
+            print("P[-1]: ", P[-1])
             FHG = Q + Ft.bmm(P[-1]).bmm(F)
-            Fi = FHG[i, :, :nx, :nx]
-            Hi = FHG[i, :, :nx, nx:]
-            Gi = FHG[i, nx:, nx:]
-            Ginv = [torch.pinverse(Gi) for j in range(Gi.shape[0])]
-            Ginv = torch.stack(Ginv)
-            Ki = -Ginv.bmm(Hi)
+            Fi = FHG[:, :dimx, :dimx]
+            Hi = FHG[:, :dimx, dimx:]
+            Gi = FHG[:, dimx:, dimx:]
+            Ginv = torch.stack([torch.pinverse(Gi[j]) for j in range(Gi.shape[0])])
+            Ki = -Ginv.bmm(Hi.transpose(1, 2))
             vi = utils.bmv(Ft, (utils.bmv(P[-1], xres)-s[-1])) + lxu
-            vxi = vi[:, :nx]
-            vui = vi[:, nx:]
+            vxi = vi[:, :dimx]
+            vui = vi[:, dimx:]
             ki = utils.bmv(-Ginv, vui)
             Pi = Fi - Ki.transpose(1, 2).bmm(Gi).bmm(Ki)
-            si = -vxi - Hi.bmv(ki)
+            si = - vxi - utils.bmv(Hi, ki)
             P.append(Pi)
             s.append(si)
             K.append(Ki)
@@ -49,7 +52,10 @@ class RiccatiRecursion(object):
         s.reverse()
         K.reverse()
         k.reverse()
-        x0res = kkt.x0res
+        P = torch.stack(P)
+        s = torch.stack(s)
+        K = torch.stack(K)
+        k = torch.stack(k)
         return P, s, K, k
 
     def forward_riccati_recursion(self, kkt, P, s, K, k):
@@ -61,14 +67,14 @@ class RiccatiRecursion(object):
         for i in range(N):
             A, B, xres = kkt.get_stage_lin_dynamics(i)
             dui = utils.bmv(K[i], dx[-1]) + k[i]
-            dlmdi = utils.bmv(P[i], dx[-1]) - self.s[i]
-            dxip1 = utils.bmv(A, dx[-1]) + utils.bmv(B, du[i]) + xres
-            dx.append(dxip1)
+            dlmdi = utils.bmv(P[i], dx[-1]) - s[i]
             du.append(dui)
             dlmd.append(dlmdi)
+            dxi = utils.bmv(A, dx[-1]) + utils.bmv(B, du[-1]) + xres
+            dx.append(dxi)
         dlmdN = utils.bmv(P[N], dx[-1]) - s[N]
         dlmd.append(dlmdN)
-        dx = torch.Tensor(dx)
-        du = torch.Tensor(du)
-        dlmd = torch.Tensor(dlmd)
+        dx = torch.stack(dx)
+        du = torch.stack(du)
+        dlmd = torch.stack(dlmd)
         return dx, du, dlmd
