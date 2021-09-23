@@ -60,8 +60,9 @@ if __name__ == '__main__':
     for t in range(sim_step):
         u = mpc.mpc_step(x, iter_max=MPC_iter_max)
         urand = u + torch.rand(nbatch, dynamics.dimu)
-        mpc.test_Q_step(x, urand, iter_max=MPC_iter_max)
-        x = model.eval(x, u)
+        x1 = model.eval(x, u)
+        td_error = mpc.forward(x, x1, u, iter_max=MPC_iter_max, verbose=True)
+        x = x1
         # save figs
         nrow, ncol = 4, 4
         fig, axs = plt.subplots(nrow, ncol, figsize=(3*ncol,3*nrow))

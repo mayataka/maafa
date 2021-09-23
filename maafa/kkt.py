@@ -45,14 +45,16 @@ class KKT(object):
         return norm
 
     def get_lagrangian(self, lmd):
+        nbatch = lmd.shape[1]
         lag = self.l[self.N]
         for i in range(self.N):
             lag += self.l[i]
-            lag += lmd[i+1].dot(self.xres[i])
-        lag += lmd[0].dot(self.x0res)
+            lag += torch.stack([lmd[i+1, j].dot(self.xres[i][j]) for j in range(nbatch)])
+        lag -= torch.stack([lmd[0, j].dot(self.x0res[j]) for j in range(nbatch)])
         return lag
 
     def get_Q_function(self, lmd, gmm):
         lag = self.get_lagrangian(lmd)
-        lag += gmm.dot(self.u0res)
+        nbatch = gmm.shape[0]
+        lag += torch.stack([gmm[j].dot(self.u0res[j]) for j in range(nbatch)])
         return lag

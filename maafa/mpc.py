@@ -15,11 +15,13 @@ class MPC(nn.Module):
         self.nbatch = nbatch
 
     def mpc_step(self, x0, kkt_tol=1.0e-04, iter_max=100, verbose=False):
-        self.x, self.u, self.lmd = self.ocp.solve(x0, self.x, self.u, self.lmd, 
-                                                  kkt_tol, iter_max, verbose)
+        self.x, self.u, self.lmd = self.ocp.solve(x0=x0, x=self.x, u=self.u, 
+                                                  lmd=self.lmd, kkt_tol=kkt_tol, 
+                                                  iter_max=iter_max, 
+                                                  verbose=verbose)
         return self.u[0]
 
-    def test_Q_step(self, x0, u0, kkt_tol=1.0e-04, iter_max=100, verbose=True):
-        self.x, self.u, self.lmd, self.gmm = self.ocp.Q_solve(
-            x0, u0, self.x, self.u, self.lmd, self.gmm, 
-            kkt_tol, iter_max, verbose)
+    def forward(self, x0, x1, u0, kkt_tol=1.0e-04, iter_max=100, verbose=True):
+        return self.ocp.forward(x0, x1, u0, self.x, self.u, self.lmd, self.gmm,
+                                kkt_tol=kkt_tol, iter_max=iter_max, verbose=verbose)
+    

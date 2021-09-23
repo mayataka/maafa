@@ -67,8 +67,7 @@ class PendulumDynamics(maafa.Dynamics):
     def eval_hess(self, x, u):
         return NotImplementedError()
 
-    def forward(self, x, u, params):
-        self.params = params
+    def forward(self, x, u):
         return self.eval(x, u)
 
     def get_frame(self, x, ax=None):
