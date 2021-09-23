@@ -1,4 +1,5 @@
 from functools import partial
+from numpy.typing import NBitBase
 import torch
 from torch.autograd import Function, Variable
 from torch.nn.parameter import Parameter
@@ -29,7 +30,6 @@ class PendulumDynamics(maafa.Dynamics):
         assert u.dim() == 2
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
-
         g, m, l = torch.unbind(self.params)
         th = x[:, 0].view(-1, 1)
         dth = x[:, 1].view(-1, 1)
@@ -37,7 +37,6 @@ class PendulumDynamics(maafa.Dynamics):
         th_res = th + self.dt * dth 
         dth_res = dth + self.dt * ddth 
         return torch.stack([th_res, dth_res]).transpose(1, 0).squeeze(-1)
-
 
     def eval_sens(self, x, u):
         if x.dim() == 1:
@@ -50,10 +49,10 @@ class PendulumDynamics(maafa.Dynamics):
         assert u.dim() == 2
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
-
         nbatch = x.shape[0]
         g, m, l = torch.unbind(self.params)
         th = x[:, 0].view(-1, 1)
+        dth = x[:, 1].view(-1, 1)
         th_res_partial_th = torch.ones(nbatch)
         th_res_partial_dth = self.dt * torch.ones(nbatch) 
         th_res_partial_u = torch.zeros(nbatch)
@@ -65,21 +64,24 @@ class PendulumDynamics(maafa.Dynamics):
         partial_u = torch.stack([th_res_partial_u, dth_res_partial_u]).transpose(1, 0)
         return torch.stack([partial_th, partial_dth, partial_u]).transpose(0, 1).transpose(1, 2)
 
+    def eval_hess(self, x, u):
+        return NotImplementedError()
+
+    def forward(self, x, u, params):
+        self.params = params
+        return self.eval(x, u)
 
     def get_frame(self, x, ax=None):
         x = x.view(-1)
         assert len(x) == 2
         th, dth = torch.unbind(x)
         g, m, l = torch.unbind(self.params)
-
         x = np.sin(th)*l
         y = np.cos(th)*l
-
         if ax is None:
             fig, ax = plt.subplots(figsize=(6,6))
         else:
             fig = ax.get_figure()
-
         ax.plot((0,x), (0, y), color='k')
         ax.set_xlim((-l*1.2, l*1.2))
         ax.set_ylim((-l*1.2, l*1.2))

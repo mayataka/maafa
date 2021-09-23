@@ -50,7 +50,7 @@ class OCP(nn.Module):
 
     def solve(self, x0, x, u, lmd, kkt_tol=1.0e-04, iter_max=100, verbose=False):
         kkt = self.eval_kkt(x0, x, u, lmd)
-        kkt_error = kkt.kkt_error()
+        kkt_error = kkt.get_kkt_error()
         if verbose:
             print('Initial KKT error = ' + str(kkt_error))
         for i in range(iter_max):
@@ -58,14 +58,56 @@ class OCP(nn.Module):
                 return x, u, lmd
             else:
                 dx, du, dlmd = self.riccati_recursion.riccati_recursion(kkt)
-                self.update_solution(x, u, lmd, dx, du, dlmd)
+                x += dx
+                u += du
+                lmd += dlmd
                 kkt = self.eval_kkt(x0, x, u, lmd)
-                kkt_error = kkt.kkt_error()
+                kkt_error = kkt.get_kkt_error()
             if verbose:
                 print('KKT error at ' + str(i) + 'th iter = ' + str(kkt_error))
         return x, u, lmd
 
-    def update_solution(self, x, u, lmd, dx, du, dlmd):
-        x += dx
-        u += du
-        lmd += dlmd
+    def eval_Q_kkt(self, x0, u0, x, u, lmd, gmm):
+        kkt = self.eval_kkt(x0, x, u, lmd)
+        u0res = u[0] - u0
+        kkt.lxu[0][:, self.dimx:] += gmm
+        return KKT(kkt.l, kkt.lxu, kkt.Q, kkt.x0res, kkt.xres, kkt.F, u0res)
+
+    def Q_solve(self, x0, u0, x, u, lmd, gmm, kkt_tol=1.0e-04, 
+                iter_max=100, verbose=False):
+        kkt = self.eval_Q_kkt(x0, u0, x, u, lmd, gmm)
+        kkt_error = kkt.get_Q_kkt_error()
+        if verbose:
+            print('Initial Q-KKT error = ' + str(kkt_error))
+        for i in range(iter_max):
+            if torch.max(kkt_error) < kkt_tol:
+                return x, u, lmd, gmm
+            else:
+                dx, du, dlmd, dgmm = self.riccati_recursion.Q_riccati_recursion(kkt)
+                x += dx
+                u += du
+                lmd += dlmd
+                gmm += dgmm
+                kkt = self.eval_Q_kkt(x0, u0, x, u, lmd, gmm)
+                kkt_error = kkt.get_Q_kkt_error()
+            if verbose:
+                print('Q-KKT error at ' + str(i) + 'th iter = ' + str(kkt_error))
+        return x, u, lmd, gmm
+
+    # def forward(self, x0, u0, x, u, lmd, gmm, kkt_tol=1.0e-04, 
+    #             iter_max=100, verbose=False):
+    #     kkt = self.eval_kkt(x0, x, u, lmd)
+    #     kkt_error = kkt.get_kkt_error()
+    #     if verbose:
+    #         print('Initial KKT error = ' + str(kkt_error))
+    #     for i in range(iter_max):
+    #         if torch.max(kkt_error) < kkt_tol:
+    #             return x, u, lmd
+    #         else:
+    #             dx, du, dlmd = self.riccati_recursion.riccati_recursion(kkt)
+    #             self.update_solution(x, u, lmd, dx, du, dlmd)
+    #             kkt = self.eval_kkt(x0, x, u, lmd)
+    #             kkt_error = kkt.get_kkt_error()
+    #         if verbose:
+    #             print('KKT error at ' + str(i) + 'th iter = ' + str(kkt_error))
+    #     return x, u, lmd

@@ -30,8 +30,8 @@ if __name__ == '__main__':
     nbatch = 16
 
     # setup MPC 
-    T = 1.0
-    N = 20
+    T = 0.5
+    N = 10
     dt = T / N
     gamma = 1.0 # discount factor
     dynamics = PendulumDynamics(dt)
@@ -59,6 +59,8 @@ if __name__ == '__main__':
 
     for t in range(sim_step):
         u = mpc.mpc_step(x, iter_max=MPC_iter_max)
+        urand = u + torch.rand(nbatch, dynamics.dimu)
+        mpc.test_Q_step(x, urand, iter_max=MPC_iter_max)
         x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4

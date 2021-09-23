@@ -41,10 +41,10 @@ class PendulumTerminalCost(maafa.TerminalCost):
             self.xweight = self.xweight.cuda()
         return torch.stack([self.xweight for i in range (x.shape[0])]) 
 
-    def eval_param_sens(self, x):
-        if x.dim() == 1:
-            x = x.unsqueeze(0)
-        return NotImplementedError()
+    def forward(self, x, xref, xweight):
+        self.xref = xref
+        self.xweight = xweight
+        return self.eval(x)
 
 
 class PendulumStageCost(maafa.StageCost):
@@ -108,5 +108,7 @@ class PendulumStageCost(maafa.StageCost):
         discount = self.gamma**stage
         return discount * self.dt * torch.stack([self.xuweight for i in range (x.shape[0])]) 
 
-    def eval_param_sens(self, x, u, stage):
-        return NotImplementedError()
+    def forward(self, x, u, xuref, xuweight):
+        self.xuref = xuref
+        self.xuweight = xuweight
+        return self.eval(x, u)
