@@ -1,5 +1,6 @@
 import torch
 from torch.autograd import Function, Variable 
+import numpy as np
 
 import maafa 
 from maafa import utils
@@ -8,8 +9,8 @@ from maafa import utils
 class PendulumTerminalCost(maafa.cost.TerminalCost):
     def __init__(self):
         super().__init__()
-        self.xref_true = torch.Tensor([1., 0.])
-        self.xweight_true = torch.Tensor([[1., 0.], [0., 1.,]])
+        self.xref_true = torch.Tensor([0.5*np.pi, 0.])
+        self.xweight_true = torch.Tensor([[1., 0.], [0., 0.1,]])
         self.xref = Variable(self.xref_true) 
         self.xweight = Variable(self.xweight_true)
 
@@ -51,8 +52,8 @@ class PendulumStageCost(maafa.cost.StageCost):
         super().__init__()
         self.gamma = gamma
         self.dt = dt
-        self.xuref_true = torch.Tensor([1., 0., 0.])
-        self.xuweight_true = torch.Tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 0.001]])
+        self.xuref_true = torch.Tensor([0.5*np.pi, 0., 0.])
+        self.xuweight_true = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
         self.xuref = Variable(self.xuref_true) 
         self.xuweight = Variable(self.xuweight_true)
 

@@ -43,7 +43,9 @@ class KKT(object):
         return A, B, xres
 
     def kkt_error(self):
-        norm1 = torch.norm(self.x0res)
-        norm2 = torch.norm(self.xres)
-        norm3 = torch.norm(self.lxu)
-        return math.sqrt(norm1+norm2+norm3) 
+        norm = torch.norm(self.x0res, dim=1)
+        for i in range(len(self.xres)):
+            norm += torch.norm(self.xres[i], dim=1)
+        for i in range(len(self.lxu)):
+            norm += torch.norm(self.lxu[i], dim=1)
+        return norm

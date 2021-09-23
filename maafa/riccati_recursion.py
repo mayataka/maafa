@@ -28,10 +28,6 @@ class RiccatiRecursion(object):
         for i in range(N-1, -1, -1):
             Q, lxu, F, xres = kkt.get_stage_kkt_block(i)
             Ft = F.transpose(1, 2)
-            print("F: ", F)
-            print("Ft: ", Ft)
-            print("Q: ", Q)
-            print("P[-1]: ", P[-1])
             FHG = Q + Ft.bmm(P[-1]).bmm(F)
             Fi = FHG[:, :dimx, :dimx]
             Hi = FHG[:, :dimx, dimx:]
