@@ -1,0 +1,82 @@
+import torch
+from torch import nn
+
+import numpy as np
+import math
+
+from .riccati_recursion import RiccatiRecursion
+from .kkt import KKT
+from . import utils
+
+
+class OCP(nn.Module):
+    def __init__(self, dynamics, stage_cost, terminal_cost, N, GaussNewton=True):
+        super().__init__()
+        self.dynamics = dynamics
+        self.stage_cost = stage_cost
+        self.terminal_cost = terminal_cost
+        self.nx = dynamics.nx
+        self.nu = dynamics.nu
+        self.N = N
+        self.GaussNewton = GaussNewton
+        self.riccati_recursion = RiccatiRecursion(dynamics, N)
+        nx = dynamics.nx()
+        nu = dynamics.nu()
+        # self.x = torch.zeros(N+1, nbatch, nx) 
+        # self.u = torch.zeros(N, nbatch, nu) 
+        # self.lmd = torch.zeros(N+1, nbatch, nx) 
+
+    def eval_kkt(self, x0, x, u, lmd):
+        nbatch = x.shape[0]
+        if x.dim() == 2:
+            x = x.unsqueeze(0)
+            u = u.unsqueeze(0)
+            lmd = lmd.unsqueeze(0)
+        N = self.N
+        x0res = [x[i][0] - x0 for i in range(nbatch)]
+        l = []
+        lxu = []
+        Q = []
+        xres = []
+        F = []
+        for i in range(N):
+            l.append(self.stage_cost.eval(x[i], u[i]))
+            lxu.append(self.stage_cost.eval_sens(x[i], u[i]))
+            Q.append(self.stage_cost.eval_hess(x[i], u[i]))
+            xres.append(self.dynamics.eval(x[i], u[i], x[i+1]))
+            F.append(self.dynamics.eval_sens(x[i], u[i]))  
+            lxu[-1] += utils.bmv(F[-1].transpose(1, 2), lmd[i+1]) 
+            if not self.GaussNewton:
+                Q[-1] += self.dynamics.eval_hess(x[i], u[i], lmd[i+1]) 
+        l.append(self.terminal_cost.eval(x[N])) 
+        lxu.append(self.terminal_cost.eval_sens(x[N])) 
+        Q.append(self.terminal_cost.eval_hess(x[N])) 
+        return KKT(N, l, lxu, Q, x0res, xres, F)
+
+    def newton_iteration(self, x0, x, u, lmd):
+        kkt = self.eval_kkt(x0, x, u, lmd)
+        dx, du, dlmd = self.riccati_recursion.riccati_recursion(kkt)
+        self.update_solution(x, u, lmd, dx, du, dlmd)
+        return x, u, lmd
+
+    def solve(self, x0, x, u, lmd, kkt_tol=1.0e-04, iter_max=100, verbose=False):
+        kkt = self.eval_kkt(x0, x, u, lmd)
+        kkt_error = kkt.kkt_error()
+        if verbose:
+            print('Initial KKT error = ' + str(kkt_error))
+        for i in range(iter_max):
+            if self.kkt_error < kkt_tol:
+                return x, u, lmd
+            else:
+                dx, du, dlmd = self.riccati_recursion.riccati_recursion(kkt)
+                self.update_solution(x, u, lmd, dx, du, dlmd)
+                kkt = self.eval_kkt(x0, x, u, lmd)
+                kkt_error = kkt.kkt_error()
+            if verbose:
+                print('KKT error at ' + str(i) + 'th iter = ' + str(self.kkt_error))
+        return x, u, lmd
+
+    def update_solution(x, u, lmd, dx, du, dlmd):
+        x += dx
+        u += du
+        lmd += dlmd
