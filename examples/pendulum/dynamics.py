@@ -1,11 +1,6 @@
-from functools import partial
-from numpy.typing import NBitBase
 import torch
-from torch.autograd import Function, Variable
-from torch.nn.parameter import Parameter
+from torch.autograd import Variable
 import numpy as np
-
-import maafa
 
 from matplotlib import pyplot as plt
 

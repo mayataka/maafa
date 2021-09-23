@@ -22,7 +22,10 @@ class MPC(nn.Module):
                                                   verbose=verbose)
         return self.u[0]
 
-    def forward(self, x0, x1, u0, params, kkt_tol=1.0e-04, iter_max=100, verbose=True):
-        return self.ocp.forward(x0, x1, u0, self.x, self.u, self.lmd, self.gmm, params=params,
+    def forward(self, x0, u0, params, kkt_tol=1.0e-04, iter_max=100, verbose=True):
+        return self.ocp.forward(x0, u0, self.x, self.u, self.lmd, self.gmm, params=params,
                                 kkt_tol=kkt_tol, iter_max=iter_max, verbose=verbose)
-    
+
+    def TD_target(self, x0, x1, u0, kkt_tol=1.0e-04, iter_max=100, verbose=True):
+        return self.ocp.eval_TD_target(x0, x1, u0, self.x, self.u, self.lmd, self.gmm,
+                                       kkt_tol=kkt_tol, iter_max=iter_max, verbose=verbose)

@@ -1,15 +1,10 @@
 import torch
-from torch.autograd import Function, Variable
-import torch.nn.functional as F
-from torch import nn
 from torch.nn.parameter import Parameter
 
 import numpy as np
 import math
 
 import os
-import io
-import base64
 import tempfile
 
 
@@ -63,7 +58,7 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max, verbose=True)
+        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
         urand = u + torch.rand(nbatch, dynamics.dimu)
         x1 = model.eval(x, u)
         x = x1

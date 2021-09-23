@@ -94,14 +94,17 @@ class OCP(nn.Module):
                 print('Q-KKT error at ' + str(i+1) + 'th iter = ' + str(kkt_error))
         return x, u, lmd, gmm
 
-    # Comptues Q function and returns TD error
-    def forward(self, x0, x1, u0, x, u, lmd, gmm, params=None, 
+    # Comptues Q function 
+    def forward(self, x0, u0, x, u, lmd, gmm, params, 
                 kkt_tol=1.0e-04, iter_max=100, verbose=False):
         x, u, lmd, gmm = self.Q_solve(x0, u0, x, u, lmd, gmm, 
                                       params=params, kkt_tol=kkt_tol, 
                                       iter_max=iter_max, verbose=verbose)
         kkt = self.eval_Q_kkt(x0, u0, x, u, lmd, gmm, params=params)
-        Q0 = kkt.get_Q_function(lmd, gmm)
+        return kkt.get_Q_function(lmd, gmm)
+
+    def eval_TD_target(self, x0, x1, u0, x, u, lmd, gmm, params=None, 
+                        kkt_tol=1.0e-04, iter_max=100, verbose=False):
         L0 = self.stage_cost.eval(x0, u0, stage=0, params=None)
         x, u, lmd = self.solve(x1, x, u, lmd, params=None,
                                kkt_tol=kkt_tol, iter_max=iter_max, 
@@ -109,4 +112,21 @@ class OCP(nn.Module):
         kkt = self.eval_kkt(x1, x, u, lmd, params=None)
         V1 = kkt.get_lagrangian(lmd)
         discount = self.stage_cost.gamma
-        return L0 + discount*V1 - Q0 
+        return L0 + discount*V1 
+
+    # # Comptues Q function and returns TD error
+    # def forward(self, x0, x1, u0, x, u, lmd, gmm, params=None, 
+    #             kkt_tol=1.0e-04, iter_max=100, verbose=False):
+    #     x, u, lmd, gmm = self.Q_solve(x0, u0, x, u, lmd, gmm, 
+    #                                   params=params, kkt_tol=kkt_tol, 
+    #                                   iter_max=iter_max, verbose=verbose)
+    #     kkt = self.eval_Q_kkt(x0, u0, x, u, lmd, gmm, params=params)
+    #     Q0 = kkt.get_Q_function(lmd, gmm)
+    #     L0 = self.stage_cost.eval(x0, u0, stage=0, params=None)
+    #     x, u, lmd = self.solve(x1, x, u, lmd, params=None,
+    #                            kkt_tol=kkt_tol, iter_max=iter_max, 
+    #                            verbose=verbose)
+    #     kkt = self.eval_kkt(x1, x, u, lmd, params=None)
+    #     V1 = kkt.get_lagrangian(lmd)
+    #     discount = self.stage_cost.gamma
+    #     return L0 + discount*V1 - Q0 

@@ -1,9 +1,5 @@
 import torch
-from torch.autograd import Function, Variable 
-import numpy as np
-
-import maafa 
-from maafa import utils
+from torch.autograd import Variable 
 
 
 class PendulumTerminalCost(torch.nn.Module):
