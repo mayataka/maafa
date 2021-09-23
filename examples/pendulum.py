@@ -27,41 +27,26 @@ plt.style.use('bmh')
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def train(env, mpc, x0, optimizer, discount_factor):
+def train(env, mpc, x0, steps):
     log_prob_actions = []
     values = []
     rewards = []
-    done = False
     episode_reward = 0
 
     MPC_kkt_tol = 1.0e-04
     MPC_iter_max = 10
+    learning_rate = 0.01
 
-#     while not done:
-#         u = mpc.mpc_step(x, MPC_iter_max)
-#         x1 = env.eval(x, u)
-#         TD_error = mpc.forward(x, x1, u, MPC_kkt_tol, MPC_iter_max)
+    optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
 
-#         action_pred, value_pred = actor_critic(state)
-#         action_prob = F.softmax(action_pred, dim=-1)
-#         dist = distributions.Categorical(action_prob)
-#         action = dist.sample()
-#         log_prob_action = dist.log_prob(action)
-#         state, reward, done, _ = env.step(action.item())
-
-#         log_prob_actions.append(log_prob_action)
-#         values.append(value_pred)
-#         rewards.append(reward)
-#         episode_reward += reward
-
-#     log_prob_actions = torch.cat(log_prob_actions)
-#     values = torch.cat(values).squeeze(-1)
-
-#     returns = calculate_returns(rewards, discount_factor)
-
-#     policy_loss, value_loss = update_policy(returns, log_prob_actions, values, optimizer)
-
-#     return policy_loss, value_loss, episode_reward
+    x = x0
+    for t in range(steps):
+        u = mpc.mpc_step(x, MPC_iter_max)
+        x1 = env.eval(x, u)
+        TD_error = mpc.forward(x, x1, u, MPC_kkt_tol, MPC_iter_max)
+        optimizer.zero_grad()
+        TD_error.backward()
+        optimizer.step()
 
 
 if __name__ == '__main__':
@@ -96,7 +81,11 @@ if __name__ == '__main__':
     else:
         params=None
     model = PendulumDynamics(dt, params=params)
-    print(list(model.parameters()))
+
+    steps = 1000
+    train(model, mpc, x0, steps)
+    print(list(mpc.parameters()))
+
 
     # MPC simulation 
     sim_time = 5.
