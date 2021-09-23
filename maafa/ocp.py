@@ -37,13 +37,15 @@ class OCP(nn.Module):
             l.append(self.stage_cost.eval(x[i], u[i], i))
             lxu.append(self.stage_cost.eval_sens(x[i], u[i], i))
             Q.append(self.stage_cost.eval_hess(x[i], u[i], i))
-            xres.append(self.dynamics.eval(x[i], u[i]) - x[i+1])
+            xres.append(self.dynamics.eval(x[i], u[i])-x[i+1])
             F.append(self.dynamics.eval_sens(x[i], u[i]))  
             lxu[-1] += utils.bmv(F[-1].transpose(1, 2), lmd[i+1]) 
+            lxu[-1][:, :self.dimx] -= lmd[i]
             if not self.GaussNewton:
                 Q[-1] += self.dynamics.eval_hess(x[i], u[i], lmd[i+1]) 
         l.append(self.terminal_cost.eval(x[N])) 
         lxu.append(self.terminal_cost.eval_sens(x[N])) 
+        lxu[-1] -= lmd[N]
         Q.append(self.terminal_cost.eval_hess(x[N]))
         return KKT(l, lxu, Q, x0res, xres, F)
 

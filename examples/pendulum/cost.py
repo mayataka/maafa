@@ -9,7 +9,7 @@ from maafa import utils
 class PendulumTerminalCost(maafa.cost.TerminalCost):
     def __init__(self):
         super().__init__()
-        self.xref_true = torch.Tensor([0.5*np.pi, 0.])
+        self.xref_true = torch.Tensor([0., 0.])
         self.xweight_true = torch.Tensor([[1., 0.], [0., 0.1,]])
         self.xref = Variable(self.xref_true) 
         self.xweight = Variable(self.xweight_true)
@@ -48,11 +48,11 @@ class PendulumTerminalCost(maafa.cost.TerminalCost):
 
 
 class PendulumStageCost(maafa.cost.StageCost):
-    def __init__(self, gamma, dt):
+    def __init__(self, dt, gamma):
         super().__init__()
-        self.gamma = gamma
         self.dt = dt
-        self.xuref_true = torch.Tensor([0.5*np.pi, 0., 0.])
+        self.gamma = gamma
+        self.xuref_true = torch.Tensor([0., 0., 0.])
         self.xuweight_true = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
         self.xuref = Variable(self.xuref_true) 
         self.xuweight = Variable(self.xuweight_true)
@@ -67,13 +67,13 @@ class PendulumStageCost(maafa.cost.StageCost):
         assert u.shape[1] == 1
         assert u.dim() == 2
         assert stage >= 0
-        if x.is_cuda and not self.params.is_cuda:
+        if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
             self.xuweight = self.xuweight.cuda()
         xu = torch.cat([x.transpose(0, 1), u.transpose(0, 1)]).transpose(1, 0)
         xudiff = xu - self.xuref
         Wxudiff = self.xuweight.mm(xudiff.transpose(0, 1)).transpose(1, 0)
-        discount = self.gamma **stage
+        discount = self.gamma**stage
         return discount * self.dt * 0.5 * torch.stack([xudiff[i].dot(Wxudiff[i]) for i in range(x.shape[0])])
 
     def eval_sens(self, x, u, stage):
@@ -85,12 +85,12 @@ class PendulumStageCost(maafa.cost.StageCost):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
-        if x.is_cuda and not self.params.is_cuda:
+        if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
             self.xuweight = self.xuweight.cuda()
         xu = torch.cat([x.transpose(0, 1), u.transpose(0, 1)]).transpose(1, 0)
         xudiff = xu - self.xuref
-        discount = self.gamma **stage
+        discount = self.gamma**stage
         return discount * self.dt * self.xuweight.mm(xudiff.transpose(0, 1)).transpose(1, 0)
 
     def eval_hess(self, x, u, stage):
@@ -102,10 +102,10 @@ class PendulumStageCost(maafa.cost.StageCost):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
-        if x.is_cuda and not self.params.is_cuda:
+        if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
             self.xuweight = self.xuweight.cuda()
-        discount = self.gamma **stage
+        discount = self.gamma**stage
         return discount * self.dt * torch.stack([self.xuweight for i in range (x.shape[0])]) 
 
     def eval_param_sens(self, x, u, stage):

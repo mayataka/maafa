@@ -26,7 +26,7 @@ class RiccatiRecursion(object):
         s.append(-lxN)
         assert QxxN.dim() == 3
         for i in range(N-1, -1, -1):
-            Q, lxu, F, xres = kkt.get_stage_kkt_block(i)
+            Q, lxu, F, xres = kkt.get_stage_kkt(i)
             Ft = F.transpose(1, 2)
             FHG = Q + Ft.bmm(P[-1]).bmm(F)
             Fi = FHG[:, :dimx, :dimx]
@@ -37,8 +37,8 @@ class RiccatiRecursion(object):
             vi = utils.bmv(Ft, (utils.bmv(P[-1], xres)-s[-1])) + lxu
             vxi = vi[:, :dimx]
             vui = vi[:, dimx:]
-            ki = utils.bmv(-Ginv, vui)
             Pi = Fi - Ki.transpose(1, 2).bmm(Gi).bmm(Ki)
+            ki = - utils.bmv(Ginv, vui)
             si = - vxi - utils.bmv(Hi, ki)
             P.append(Pi)
             s.append(si)
@@ -48,10 +48,6 @@ class RiccatiRecursion(object):
         s.reverse()
         K.reverse()
         k.reverse()
-        P = torch.stack(P)
-        s = torch.stack(s)
-        K = torch.stack(K)
-        k = torch.stack(k)
         return P, s, K, k
 
     def forward_riccati_recursion(self, kkt, P, s, K, k):

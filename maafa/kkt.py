@@ -16,24 +16,11 @@ class KKT(object):
         self.F = F
         self.dimx = F[0].shape[1]
 
-    def get_stage_kkt_block(self, stage):
+    def get_stage_kkt(self, stage):
         if stage == self.N:
             return self.Q[stage], self.lxu[stage]
         else:
             return self.Q[stage], self.lxu[stage], self.F[stage], self.xres[stage]
-
-    def get_stage_kkt(self, stage):
-        dimx = self.dimx
-        if stage == self.N:
-            return self.Q[stage], self.lxu[stage]
-        else:
-            Qxx = self.Q[stage][:, :dimx, :dimx]
-            Qxu = self.Q[stage][:, :dimx, dimx:]
-            Quu = self.Q[stage][:, dimx:, dimx:]
-            lx = self.lxu[stage][:, :dimx]
-            lu = self.lxu[stage][:, dimx:]
-            A, B, xres = self.get_stage_lin_dynamics(stage)
-            return Qxx, Qxu, Quu, lx, lu, A, B, xres
 
     def get_stage_lin_dynamics(self, stage):
         dimx = self.dimx
