@@ -23,6 +23,13 @@ class PendulumDynamics(torch.nn.Module):
         else:
             self.params = self.default_params
 
+    def set_params(self, params):
+        if params is not None and params.dyn_params is not None:
+            self.params = params.dyn_params
+        else:
+            if hasattr(self.params, "requires_grad"):
+                self.params.requires_grad = False 
+
     def eval(self, x, u, params=None):
         if x.dim() == 1:
             x = x.unsqueeze(0)
@@ -32,10 +39,7 @@ class PendulumDynamics(torch.nn.Module):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
-        if params is not None and params.dyn_params is not None:
-            self.params = params.dyn_params
-        else:
-            self.params = Variable(self.params)
+        self.set_params(params)
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
         g, m, l = torch.unbind(self.params)
@@ -55,10 +59,7 @@ class PendulumDynamics(torch.nn.Module):
         assert x.shape[1] == 2
         assert u.shape[1] == 1
         assert u.dim() == 2
-        if params is not None and params.dyn_params is not None:
-            self.params = params.dyn_params
-        else:
-            self.params = Variable(self.params)
+        self.set_params(params)
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
         nbatch = x.shape[0]
@@ -79,7 +80,7 @@ class PendulumDynamics(torch.nn.Module):
     def eval_hess(self, x, u, parms=None):
         return NotImplementedError()
 
-    def forward(self, x, u, params=None):
+    def forward(self, x, u, params):
         return self.eval(x, u, params)
 
     def get_frame(self, x, ax=None):

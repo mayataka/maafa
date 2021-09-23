@@ -1,4 +1,3 @@
-from matplotlib.pyplot import disconnect
 import torch
 from torch import nn
 
@@ -103,7 +102,7 @@ class OCP(nn.Module):
                                       iter_max=iter_max, verbose=verbose)
         kkt = self.eval_Q_kkt(x0, u0, x, u, lmd, gmm, params=params)
         Q0 = kkt.get_Q_function(lmd, gmm)
-        L0 = self.stage_cost.forward(x0, u0, stage=0, params=None)
+        L0 = self.stage_cost.eval(x0, u0, stage=0, params=None)
         x, u, lmd = self.solve(x1, x, u, lmd, params=None,
                                kkt_tol=kkt_tol, iter_max=iter_max, 
                                verbose=verbose)

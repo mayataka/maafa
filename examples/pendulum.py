@@ -49,7 +49,7 @@ if __name__ == '__main__':
     model = PendulumDynamics(dt)
 
     # Dynamics and cost params
-    params = PendulumParams()
+    params = PendulumParams(dyn_params=Parameter(torch.Tensor((10., 1., 1.))))
 
     # MPC simulation 
     sim_time = 5.
@@ -63,6 +63,7 @@ if __name__ == '__main__':
         u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max, verbose=True)
         urand = u + torch.rand(nbatch, dynamics.dimu)
         x1 = model.eval(x, u)
+        td = mpc.forward(x, x1, u, params=params)
         x = x1
         # save figs
         nrow, ncol = 4, 4

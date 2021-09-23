@@ -1,7 +1,5 @@
 import torch
 
-import math
-
 
 class KKT(object):
     def __init__(self, l, lxu, Q, x0res, xres, F, u0res=None):

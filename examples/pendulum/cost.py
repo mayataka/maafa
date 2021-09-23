@@ -28,11 +28,13 @@ class PendulumTerminalCost(torch.nn.Module):
         if params is not None and params.xfref is not None:
             self.xfref = params.xfref
         else:
-            self.xfref = Variable(self.xfref)
+            if hasattr(self.xfref, "requires_grad"):
+                self.xfref.requires_grad = False 
         if params is not None and params.xfweight is not None:
             self.xfweight = params.xfweight
         else:
-            self.xfweight = Variable(self.xfweight)
+            if hasattr(self.xfweight, "requires_grad"):
+                self.xfweight.requires_grad = False 
 
     def eval(self, x, params=None):
         if x.dim() == 1:
@@ -64,7 +66,7 @@ class PendulumTerminalCost(torch.nn.Module):
             self.xfweight = self.xfweight.cuda()
         return torch.stack([self.xfweight for i in range (x.shape[0])]) 
 
-    def forward(self, x, params=None):
+    def forward(self, x, params):
         return self.eval(x, params)
 
 
@@ -92,11 +94,13 @@ class PendulumStageCost(torch.nn.Module):
         if params is not None and params.xuref is not None:
             self.xuref = params.xuref
         else:
-            self.xuref = Variable(self.xuref)
+            if hasattr(self.xuref, "requires_grad"):
+                self.xuref.requires_grad = False 
         if params is not None and params.xuweight is not None:
             self.xuweight = params.xuweight
         else:
-            self.xuweight = Variable(self.xuweight)
+            if hasattr(self.xuweight, "requires_grad"):
+                self.xuweight.requires_grad = False 
 
     def eval(self, x, u, stage, params=None):
         if x.dim() == 1:
@@ -152,5 +156,5 @@ class PendulumStageCost(torch.nn.Module):
         discount = self.gamma**stage
         return discount * self.dt * torch.stack([self.xuweight for i in range (x.shape[0])]) 
 
-    def forward(self, x, u, stage, params=None):
+    def forward(self, x, u, stage, params):
         return self.eval(x, u, stage, params)
