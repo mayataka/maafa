@@ -9,10 +9,10 @@ class MPC(nn.Module):
                  nbatch=1, device=None):
         super().__init__()
         self.ocp = ocp.OCP(dynamics, stage_cost, terminal_cost, N, GaussNewton)
-        self.x = torch.zeros(N+1, nbatch, dynamics.dimx)
-        self.u = torch.zeros(N, nbatch, dynamics.dimu)
-        self.lmd = torch.zeros(N+1, nbatch, dynamics.dimx)
-        self.gmm = torch.zeros(nbatch, dynamics.dimu)
+        self.x = torch.zeros(N+1, nbatch, dynamics.dimx, device=device)
+        self.u = torch.zeros(N, nbatch, dynamics.dimu, device=device)
+        self.lmd = torch.zeros(N+1, nbatch, dynamics.dimx, device=device)
+        self.gmm = torch.zeros(nbatch, dynamics.dimu, device=device)
         self.nbatch = nbatch
 
     def set_params(self, params):
