@@ -44,11 +44,11 @@ if __name__ == '__main__':
     model = PendulumDynamics(dt, params=params_true)
 
     # Dynamics and cost params
-    params = PendulumParams(dyn_params=Parameter(dynamics.default_params),
-                            xuref=Parameter(stage_cost.default_xuref),
-                            xuweight=Parameter(stage_cost.default_xuweight),
-                            xfref=Parameter(terminal_cost.default_xfref),
-                            xfweight=Parameter(terminal_cost.default_xfweight))
+    params = PendulumParams(dyn_params=Parameter(dynamics.default_params.to(device)),
+                            xuref=Parameter(stage_cost.default_xuref.to(device)),
+                            xuweight=Parameter(stage_cost.default_xuweight.to(device)),
+                            xfref=Parameter(terminal_cost.default_xfref.to(device)),
+                            xfweight=Parameter(terminal_cost.default_xfweight.to(device)))
     mpc.set_params(params)
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))

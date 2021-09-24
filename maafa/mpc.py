@@ -14,6 +14,7 @@ class MPC(nn.Module):
         self.lmd = torch.zeros(N+1, nbatch, dynamics.dimx, device=device)
         self.gmm = torch.zeros(nbatch, dynamics.dimu, device=device)
         self.nbatch = nbatch
+        self.device = device
 
     def set_params(self, params):
         self.ocp.set_params(params)

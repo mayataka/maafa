@@ -3,9 +3,9 @@ import torch
 import numpy as np
 
 
-def mpc_episode(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max, device=None):
+def mpc_episode(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max):
     torch.manual_seed(0)
-    x = env.reset(batch_size, device)
+    x = env.reset(batch_size, mpc.device)
     xm = []
     um = []
     Vm = []
@@ -21,7 +21,7 @@ def mpc_episode(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max, device=None):
         x = x1
     return xm, um, Vm, Lm
 
-def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max, device=None,
+def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max, 
           loss_fn=None, optimizer=None, episodes=100, verbose=False, debug=False):
     if debug:
         torch.autograd.set_detect_anomaly(True)
@@ -33,7 +33,7 @@ def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max, device=None,
         if verbose:
             print("----------- Episode:", episode+1, "-----------")
         xm, um, Vm, Lm = mpc_episode(env, mpc, mpc_sim_steps, 
-                                     batch_size, mpc_iter_max, device)
+                                     batch_size, mpc_iter_max)
         discount_factor = mpc.ocp.stage_cost.gamma
         for t in range(mpc_sim_steps-1):
             mpc.Q_step(xm[t], um[t])
