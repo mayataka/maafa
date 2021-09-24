@@ -35,12 +35,11 @@ if __name__ == '__main__':
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
 
     # initial states
-    torch.manual_seed(0)
     x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
 
     # simulation model
     params_true = PendulumParams()
-    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0))
+    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0), device=device)
     model = PendulumDynamics(dt, params=params_true)
 
     # Dynamics and cost params

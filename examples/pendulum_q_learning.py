@@ -35,12 +35,11 @@ if __name__ == '__main__':
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
 
     # initial states
-    torch.manual_seed(0)
     x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
 
     # simulation model
     params_true = PendulumParams()
-    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0))
+    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0), device=device)
     model = PendulumDynamics(dt, params=params_true)
 
     # Dynamics and cost params
@@ -53,15 +52,15 @@ if __name__ == '__main__':
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
-    loss_fn = torch.nn.SmoothL1Loss()
-    learning_rate = 0.001
+    loss_fn = torch.nn.SmoothL1Loss(beta=0.01)
+    learning_rate = 1.0e-05
     optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-    QL_mpc_sim_steps = math.floor(5.0/dynamics.dt) 
+    QL_mpc_sim_steps = math.floor(0.5*5.0/dynamics.dt) 
     QL_batch_size = 16
     QL_mac_iter_max = 10
     maafa.q_learning.train(model, mpc, QL_mpc_sim_steps, QL_batch_size, 
                            QL_mac_iter_max, loss_fn=loss_fn, 
-                           optimizer=optimizer, episodes=10, verbose=True)
+                           optimizer=optimizer, episodes=5, verbose=True)
 
     print("MPC parameters after Q-learning:")
     print(list(mpc.parameters()))

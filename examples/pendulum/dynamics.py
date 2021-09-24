@@ -21,9 +21,6 @@ class PendulumDynamics(torch.nn.Module):
     def set_params(self, params):
         if params is not None and params.dyn_params is not None:
             self.params = params.dyn_params
-        # else:
-        #     if hasattr(self.params, "requires_grad"):
-        #         self.params.requires_grad = False 
 
     def eval(self, x, u, params=None):
         if x.dim() == 1:
@@ -85,7 +82,6 @@ class PendulumDynamics(torch.nn.Module):
         return self.eval(x, u, params)
 
     def reset(self, nbatch=1, device=None):
-        torch.manual_seed(0)
         return np.pi*torch.rand(nbatch, self.dimx, device=device)
 
     def get_frame(self, x, ax=None):

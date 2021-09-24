@@ -4,7 +4,6 @@ import numpy as np
 
 
 def mpc_episode(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max):
-    torch.manual_seed(0)
     x = env.reset(batch_size, mpc.device)
     xm = []
     um = []
@@ -28,7 +27,8 @@ def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max,
     if loss_fn is None:
         loss_fn = torch.nn.SmoothL1Loss()
     if optimizer is None:
-        optimizer = torch.optim.Adam(mpc.parameters(), lr=0.001)
+        learning_rate = 1.0e-05
+        optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
     for episode in range(episodes):
         if verbose:
             print("----------- Episode:", episode+1, "-----------")
@@ -41,7 +41,9 @@ def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max,
             pred = Lm[t] + discount_factor * Vm[t+1]
             loss = loss_fn(Qt, pred)
             if verbose:
-                print("sim step:", t, ", loss:", loss)
+                print("sim step:", t, 
+                      ", TD error(avg):", (Qt-pred).abs().mean().item(), 
+                      ", loss:", loss.item())
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
