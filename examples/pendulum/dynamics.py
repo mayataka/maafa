@@ -21,9 +21,9 @@ class PendulumDynamics(torch.nn.Module):
     def set_params(self, params):
         if params is not None and params.dyn_params is not None:
             self.params = params.dyn_params
-        else:
-            if hasattr(self.params, "requires_grad"):
-                self.params.requires_grad = False 
+        # else:
+        #     if hasattr(self.params, "requires_grad"):
+        #         self.params.requires_grad = False 
 
     def eval(self, x, u, params=None):
         if x.dim() == 1:
@@ -38,9 +38,12 @@ class PendulumDynamics(torch.nn.Module):
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
         g, m, l = torch.unbind(self.params)
+        g = g.clone()
+        m = m.clone()
+        l = l.clone()
         th = x[:, 0].view(-1, 1)
         dth = x[:, 1].view(-1, 1)
-        ddth = -3.*g/(2.*l)*torch.sin(th+np.pi) + 3.*u/(m*l**2.)
+        ddth = - 3.*g/(2.*l)*torch.sin(th.clone()+np.pi) + 3.*u.clone()/(m*l**2.)
         th_res = th + self.dt * dth 
         dth_res = dth + self.dt * ddth 
         return torch.stack([th_res, dth_res]).transpose(1, 0).squeeze(-1)
@@ -59,12 +62,14 @@ class PendulumDynamics(torch.nn.Module):
             self.params = self.params.cuda()
         nbatch = x.shape[0]
         g, m, l = torch.unbind(self.params)
+        g = g.clone()
+        m = m.clone()
+        l = l.clone()
         th = x[:, 0].view(-1, 1)
-        dth = x[:, 1].view(-1, 1)
         th_res_partial_th = torch.ones(nbatch)
         th_res_partial_dth = self.dt * torch.ones(nbatch) 
         th_res_partial_u = torch.zeros(nbatch)
-        dth_res_partial_th = self.dt * (-3.*g/(2.*l)*torch.cos(th+np.pi)).squeeze(-1)
+        dth_res_partial_th = self.dt * (-3.*g/(2.*l)*torch.cos(th.clone()+np.pi)).squeeze(-1)
         dth_res_partial_dth = torch.ones(nbatch)
         dth_res_partial_u = (self.dt*3./(m*l**2.))*torch.ones(nbatch)
         partial_th = torch.stack([th_res_partial_th, dth_res_partial_th]).transpose(1, 0)
@@ -77,6 +82,10 @@ class PendulumDynamics(torch.nn.Module):
 
     def forward(self, x, u, params):
         return self.eval(x, u, params)
+
+    def reset(self, nbatch=1):
+        torch.manual_seed(0)
+        return np.pi*torch.rand(nbatch, self.dimx)
 
     def get_frame(self, x, ax=None):
         x = x.view(-1)

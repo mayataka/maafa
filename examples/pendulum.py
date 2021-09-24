@@ -7,12 +7,10 @@ import math
 import os
 import tempfile
 
-
 import maafa
 from pendulum.dynamics import PendulumDynamics
 from pendulum.cost import PendulumTerminalCost, PendulumStageCost
 from pendulum.params import PendulumParams
-
 
 import matplotlib
 matplotlib.use('Agg')
@@ -21,6 +19,8 @@ plt.style.use('bmh')
 
 
 if __name__ == '__main__':
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     # number of the batch MPC simulations
     nbatch = 16
 
@@ -33,8 +33,6 @@ if __name__ == '__main__':
     terminal_cost = PendulumTerminalCost()
     stage_cost = PendulumStageCost(dt, discount_factor)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch)
-
-    print(list(mpc.parameters()))
 
     # initial states
     torch.manual_seed(0)
@@ -55,11 +53,8 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
-        x1 = model.eval(x, u)
-        Q = mpc.forward(x, u, params=params)
-        TD = mpc.TD_target(x, u, x1)
-        x = x1
+        u, V = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
+        x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4
         fig, axs = plt.subplots(nrow, ncol, figsize=(3*ncol,3*nrow))

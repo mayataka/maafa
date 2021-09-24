@@ -12,7 +12,7 @@ class KKT(object):
         self.x0res = x0res
         self.xres = xres
         self.F = F
-        self.dimx = F[0].shape[1]
+        self.dimx = xres[0].shape[1]
         self.u0res = u0res
 
     def get_stage_kkt(self, stage):
@@ -31,28 +31,28 @@ class KKT(object):
     def get_kkt_error(self):
         norm = torch.norm(self.x0res, dim=1)
         for i in range(len(self.xres)):
-            norm += torch.norm(self.xres[i], dim=1)
+            norm = norm + torch.norm(self.xres[i], dim=1)
         for i in range(len(self.lxu)):
-            norm += torch.norm(self.lxu[i], dim=1)
+            norm = norm + torch.norm(self.lxu[i], dim=1)
         return norm
 
     def get_Q_kkt_error(self):
         norm = self.get_kkt_error()
         if self.u0res is not None:
-            norm += torch.norm(self.u0res, dim=1)
+            norm = norm + torch.norm(self.u0res, dim=1)
         return norm
 
     def get_lagrangian(self, lmd):
         nbatch = lmd.shape[1]
         lag = self.l[self.N]
         for i in range(self.N):
-            lag += self.l[i]
-            lag += torch.stack([lmd[i+1, j].dot(self.xres[i][j]) for j in range(nbatch)])
-        lag -= torch.stack([lmd[0, j].dot(self.x0res[j]) for j in range(nbatch)])
+            lag = lag + self.l[i]
+            lag = lag + torch.stack([lmd[i+1, j].dot(self.xres[i][j]) for j in range(nbatch)])
+        lag = lag - torch.stack([lmd[0, j].dot(self.x0res[j]) for j in range(nbatch)])
         return lag
 
     def get_Q_function(self, lmd, gmm):
         lag = self.get_lagrangian(lmd)
         nbatch = gmm.shape[0]
-        lag += torch.stack([gmm[j].dot(self.u0res[j]) for j in range(nbatch)])
+        lag = lag + torch.stack([gmm[j].dot(self.u0res[j]) for j in range(nbatch)])
         return lag

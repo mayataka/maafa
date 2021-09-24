@@ -1,38 +1,47 @@
 import torch
-from torch.autograd import Function, Variable
-import torch.nn.functional as F
-from torch import nn
-from torch.nn.parameter import Parameter
 
 import numpy as np
-import math
 
-class QLearning(object):
-    def __init__(self, 
-                 EPOCH_NUM = 3000,
-                 STEP_MAX = 200,
-                 MEMORY_SIZE = 200,
-                 BATCH_SIZE = 16,
-                 EPSILON = 1.0,
-                 EPSILON_DECAY = 0.005,
-                 EPSILON_MIN = 0.05,
-                 START_REDUCE_EPSILON = 200 ,
-                 TRAIN_FREQ = 10 ,
-                 UPDATE_TARGET_Q_FREQ = 20,
-                 GAMMA = 0.99,
-                 LOG_FREQ = 1000):
 
-    def train(env, mpc, loss_func=torch.nn.HuberLoss):
-        
-
-def Q_learning():
-    optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-
-    x = x0
-    for t in range(steps):
-        u = mpc.mpc_step(x, MPC_iter_max)
+def mpc_episode(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max):
+    torch.manual_seed(0)
+    x = env.reset(batch_size)
+    xm = []
+    um = []
+    Vm = []
+    Lm = []
+    for t in range(mpc_sim_steps):
+        u, V = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
+        L = mpc.ocp.stage_cost.eval(x, u, stage=0)
         x1 = env.eval(x, u)
-        TD_error = mpc.forward(x, x1, u, MPC_kkt_tol, MPC_iter_max)
-        optimizer.zero_grad()
-        TD_error.backward()
-        optimizer.step()
+        xm.append(x)
+        um.append(u)
+        Vm.append(V)
+        Lm.append(L)
+        x = x1
+    return xm, um, Vm, Lm
+
+def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max, 
+          loss_fn=None, optimizer=None, episodes=100, verbose=False, debug=False):
+    if debug:
+        torch.autograd.set_detect_anomaly(True)
+    if loss_fn is None:
+        loss_fn = torch.nn.SmoothL1Loss()
+    if optimizer is None:
+        optimizer = torch.optim.Adam(mpc.parameters(), lr=0.001)
+    for episode in range(episodes):
+        if verbose:
+            print("----------- Episode:", episode+1, "-----------")
+        xm, um, Vm, Lm = mpc_episode(env, mpc, mpc_sim_steps, 
+                                     batch_size, mpc_iter_max)
+        discount_factor = mpc.ocp.stage_cost.gamma
+        for t in range(mpc_sim_steps-1):
+            mpc.Q_step(xm[t], um[t])
+            Qt = mpc.forward(xm[t], um[t])
+            pred = Lm[t] + discount_factor * Vm[t+1]
+            loss = loss_fn(Qt, pred)
+            if verbose:
+                print("sim step:", t, ", loss:", loss)
+            optimizer.zero_grad()
+            loss.backward(retain_graph=True)
+            optimizer.step()

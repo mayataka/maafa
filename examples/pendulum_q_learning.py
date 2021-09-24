@@ -44,7 +44,27 @@ if __name__ == '__main__':
     model = PendulumDynamics(dt, params=params_true)
 
     # Dynamics and cost params
-    params = PendulumParams()
+    params = PendulumParams(dyn_params=Parameter(dynamics.default_params),
+                            xuref=Parameter(stage_cost.default_xuref),
+                            xuweight=Parameter(stage_cost.default_xuweight),
+                            xfref=Parameter(terminal_cost.default_xfref),
+                            xfweight=Parameter(terminal_cost.default_xfweight))
+    mpc.set_params(params)
+    print("MPC parameters before Q-learning:")
+    print(list(mpc.parameters()))
+
+    loss_fn = torch.nn.SmoothL1Loss()
+    learning_rate = 0.001
+    optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
+    QL_mpc_sim_steps = math.floor(5.0/dynamics.dt) 
+    QL_batch_size = 16
+    QL_mac_iter_max = 10
+    maafa.q_learning.train(model, mpc, QL_mpc_sim_steps, QL_batch_size, 
+                           QL_mac_iter_max, loss_fn=loss_fn, 
+                           optimizer=optimizer, episodes=10, verbose=True)
+
+    print("MPC parameters after Q-learning:")
+    print(list(mpc.parameters()))
 
     # MPC simulation 
     sim_time = 5.
@@ -70,7 +90,7 @@ if __name__ == '__main__':
         plt.close(fig)
 
     # save video
-    vid_fname = 'pendulum_inaccurate.mp4'
+    vid_fname = 'pendulum_q_learning.mp4'
     if os.path.exists(vid_fname):
         os.remove(vid_fname)
     cmd = 'ffmpeg -r 16 -f image2 -i {}/%03d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p {}'.format(
