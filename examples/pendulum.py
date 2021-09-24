@@ -32,11 +32,11 @@ if __name__ == '__main__':
     dynamics = PendulumDynamics(dt)
     terminal_cost = PendulumTerminalCost()
     stage_cost = PendulumStageCost(dt, discount_factor)
-    mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch)
+    mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
 
     # initial states
     torch.manual_seed(0)
-    x0 = np.pi*torch.rand(nbatch, dynamics.dimx)
+    x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
 
     # simulation model
     model = PendulumDynamics(dt)

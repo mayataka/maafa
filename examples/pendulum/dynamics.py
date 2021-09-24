@@ -84,9 +84,9 @@ class PendulumDynamics(torch.nn.Module):
     def forward(self, x, u, params):
         return self.eval(x, u, params)
 
-    def reset(self, nbatch=1):
+    def reset(self, nbatch=1, device=None):
         torch.manual_seed(0)
-        return np.pi*torch.rand(nbatch, self.dimx)
+        return np.pi*torch.rand(nbatch, self.dimx, device=device)
 
     def get_frame(self, x, ax=None):
         x = x.view(-1)
