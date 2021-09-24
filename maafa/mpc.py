@@ -16,6 +16,17 @@ class MPC(nn.Module):
         self.nbatch = nbatch
         self.device = device
 
+    def set_nbatch(self, nbatch):
+        self.x = torch.zeros(self.ocp.N+1, nbatch, self.ocp.dynamics.dimx, 
+                             device=self.device)
+        self.u = torch.zeros(self.ocp.N, nbatch, self.ocp.dynamics.dimu, 
+                             device=self.device)
+        self.lmd = torch.zeros(self.ocp.N+1, nbatch, self.ocp.dynamics.dimx, 
+                               device=self.device)
+        self.gmm = torch.zeros(nbatch, self.ocp.dynamics.dimu, 
+                               device=self.device)
+        self.nbatch = nbatch
+
     def set_params(self, params):
         self.ocp.set_params(params)
 

@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # Dynamics and cost params
     params = PendulumParams()
 
-    # MPC simulation 
+    # Simulate MPC whose model of the dynamimcal system is inaccurate
     sim_time = 5.
     sim_step = math.floor(sim_time / dt)
     MPC_iter_max = 10

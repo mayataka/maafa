@@ -21,9 +21,6 @@ plt.style.use('bmh')
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    # number of the batch MPC simulations
-    nbatch = 16
-
     # setup MPC 
     T = 0.5
     N = 10
@@ -32,10 +29,7 @@ if __name__ == '__main__':
     dynamics = PendulumDynamics(dt)
     terminal_cost = PendulumTerminalCost()
     stage_cost = PendulumStageCost(dt, discount_factor)
-    mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
-
-    # initial states
-    x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
+    mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, device=device)
 
     # simulation model
     params_true = PendulumParams()
@@ -52,20 +46,27 @@ if __name__ == '__main__':
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
-    loss_fn = torch.nn.SmoothL1Loss(beta=0.01)
-    learning_rate = 1.0e-05
+    loss_fn = torch.nn.MSELoss()
+    learning_rate = 1.0e-03
     optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-    QL_mpc_sim_steps = math.floor(0.5*5.0/dynamics.dt) 
-    QL_batch_size = 16
-    QL_mac_iter_max = 10
+    QL_mpc_sim_steps = math.floor(2.0/dynamics.dt) 
+    QL_batch_size = 1
+    QL_mpc_iter_max = 10
     maafa.q_learning.train(model, mpc, QL_mpc_sim_steps, QL_batch_size, 
-                           QL_mac_iter_max, loss_fn=loss_fn, 
-                           optimizer=optimizer, episodes=5, verbose=True)
+                           QL_mpc_iter_max, loss_fn=loss_fn, 
+                           optimizer=optimizer, episodes=100, verbose=True)
 
     print("MPC parameters after Q-learning:")
     print(list(mpc.parameters()))
 
-    # MPC simulation 
+    # number of the batch MPC simulations
+    nbatch = 16
+    mpc.set_nbatch(nbatch)
+
+    # initial states
+    x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
+
+    # Simulate MPC with learned parameters 
     sim_time = 5.
     sim_step = math.floor(sim_time / dt)
     MPC_iter_max = 10

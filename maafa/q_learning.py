@@ -15,8 +15,8 @@ def mpc_episode(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max):
         x1 = env.eval(x, u)
         xm.append(x)
         um.append(u)
-        Vm.append(V)
-        Lm.append(L)
+        Vm.append(V.detach())
+        Lm.append(L.detach())
         x = x1
     return xm, um, Vm, Lm
 
@@ -25,10 +25,10 @@ def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max,
     if debug:
         torch.autograd.set_detect_anomaly(True)
     if loss_fn is None:
-        loss_fn = torch.nn.SmoothL1Loss()
+        loss_fn = torch.nn.MSELoss()
     if optimizer is None:
-        learning_rate = 1.0e-05
-        optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
+    mpc.set_nbatch(batch_size)
     for episode in range(episodes):
         if verbose:
             print("----------- Episode:", episode+1, "-----------")
@@ -41,9 +41,11 @@ def train(env, mpc, mpc_sim_steps, batch_size, mpc_iter_max,
             pred = Lm[t] + discount_factor * Vm[t+1]
             loss = loss_fn(Qt, pred)
             if verbose:
-                print("sim step:", t, 
+                print("sim step:", t+1, 
                       ", TD error(avg):", (Qt-pred).abs().mean().item(), 
                       ", loss:", loss.item())
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
+        if verbose:
+            print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))
