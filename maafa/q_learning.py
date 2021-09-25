@@ -10,14 +10,15 @@ def mpc_episode(env, mpc, mpc_sim_steps, mpc_sim_batch_size, mpc_iter_max):
     Lm = []
     xm1 = []
     for t in range(mpc_sim_steps):
-        u = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
-        L = mpc.ocp.stage_cost.eval_true(x, u)
-        x1 = env.eval(x, u)
-        xm.append(x)
-        um.append(u)
-        Lm.append(L.detach())
-        xm1.append(x1)
-        x = x1
+        with torch.no_grad():
+            u = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
+            L = mpc.ocp.stage_cost.eval_true(x, u)
+            x1 = env.eval(x, u)
+            xm.append(x)
+            um.append(u)
+            Lm.append(L)
+            xm1.append(x1)
+            x = x1
     return xm, um, Lm, xm1
 
 
@@ -65,12 +66,14 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
                 TD_errors = []
                 losses = []
             for x, u, L, x1 in mpc_data_loader:
-                mpc.Q_step(x, u)
-                Q = mpc.forward(x, u)
-                _u = mpc.mpc_step(x1)
-                V = mpc.forward(x1)
-                Q_expect = L.detach() + mpc.ocp.stage_cost.gamma * V.detach()
-                loss = loss_fn(Q, Q_expect)
+                with torch.no_grad():
+                    mpc.Q_step(x, u)
+                Q = mpc.forward(x.detach(), u.detach())
+                with torch.no_grad():
+                    _u = mpc.mpc_step(x1)
+                    V = mpc.forward(x1)
+                    Q_expect = L + mpc.ocp.stage_cost.gamma * V
+                loss = loss_fn(Q, Q_expect.detach())
                 if verbose:
                     TD_errors.append((Q-Q_expect).abs().mean().item())
                     losses.append(loss.item())
@@ -88,7 +91,7 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
 def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
                           mpc_iter_max=10, loss_fn_type=None, 
                           optimizer_type=None, learning_rate=1.0e-03, 
-                          verbose=False):
+                          verbose=False, debug=False):
     if loss_fn_type is not None:
         loss_fn = loss_fn_type()
     else:
@@ -100,11 +103,13 @@ def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
     x = env.reset(mpc_sim_batch_size, mpc.device)
     mpc.set_nbatch(mpc_sim_batch_size)
     for t in range(mpc_sim_steps):
-        u = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
+        with torch.no_grad():
+            u = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
         if t > 0:
-            V = mpc.forward(x)
-            Q_expect = L.detach() + mpc.ocp.stage_cost.gamma * V.detach()
-            loss = loss_fn(Q, Q_expect)
+            with torch.no_grad():
+                V = mpc.forward(x.detach())
+                Q_expect = L + mpc.ocp.stage_cost.gamma * V
+            loss = loss_fn(Q, Q_expect.detach())
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
@@ -112,10 +117,11 @@ def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
                 print("t:", t, 
                       ", TD error(avg):", (Q-Q_expect).abs().mean().item(), 
                       ", loss(avg):", loss.item())
-        Q = mpc.forward(x, u)
-        L = mpc.ocp.stage_cost.eval_true(x, u)
-        x1 = env.eval(x, u)
-        x = x1
+        Q = mpc.forward(x.detach(), u.detach())
+        with torch.no_grad():
+            L = mpc.ocp.stage_cost.eval_true(x, u)
+            x1 = env.eval(x, u)
+            x = x1
 
 
 def train_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
