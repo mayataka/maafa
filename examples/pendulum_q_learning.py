@@ -46,22 +46,26 @@ if __name__ == '__main__':
     print(list(mpc.parameters()))
 
     # Q-learning 
-    loss_fn = torch.nn.MSELoss()
+    loss_fn_type = torch.nn.MSELoss
     learning_rate = 1.0e-03
-    optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
+    optimizer_type = torch.optim.Adam
 
     # maafa.q_learning.train_off_policy(env=model, mpc=mpc, mpc_sim_steps=1, 
     #                                   mpc_sim_batch_size=128, mpc_iter_max=10, 
     #                                   train_mini_batch_size=4, 
-    #                                   train_iter_per_episode=20, 
-    #                                   loss_fn=loss_fn, optimizer=optimizer, 
-    #                                   episodes=100, verbose=True)
+    #                                   train_iter_per_episode=5, 
+    #                                   loss_fn_type=loss_fn_type, 
+    #                                   optimizer_type=optimizer_type, 
+    #                                   learning_rate=learning_rate,
+    #                                   episodes=20, verbose=True)
 
     maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
-                                     mpc_sim_steps=math.floor(5.0/dt), 
-                                     mpc_sim_batch_size=128, 
+                                     mpc_sim_steps=math.floor(1.0/dt), 
+                                     mpc_sim_batch_size=4, 
                                      mpc_iter_max=10, 
-                                     loss_fn=loss_fn, optimizer=optimizer, 
+                                     loss_fn_type=loss_fn_type, 
+                                     optimizer_type=optimizer_type, 
+                                     learning_rate=learning_rate,
                                      episodes=100, verbose=True)
 
     print("MPC parameters after Q-learning:")
