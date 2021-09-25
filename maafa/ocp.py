@@ -41,11 +41,6 @@ class OCP(nn.Module):
         assert lmd.dim() == 3
         N = self.N
         x0res = x[0] - x0 
-        # print("x0res:", x0res)
-        # print("x[0]:", x[0])
-        # print("x0:", x0)
-        # print("x[0].dim():", x[0].dim())
-        # print("x0.dim():", x0.dim())
         l = []
         lxu = []
         Q = []
@@ -74,8 +69,7 @@ class OCP(nn.Module):
             print('Initial KKT error = ' + str(kkt_error))
         for i in range(iter_max):
             if torch.max(kkt_error) < kkt_tol:
-                V_fn = kkt.get_V_function(lmd)
-                return x, u, lmd, V_fn
+                return x, u, lmd
             else:
                 dx, du, dlmd = self.riccati_recursion.riccati_recursion(kkt)
                 x = x + dx
@@ -85,8 +79,7 @@ class OCP(nn.Module):
                 kkt_error = kkt.get_kkt_error()
             if verbose:
                 print('KKT error at ' + str(i+1) + 'th iter = ' + str(kkt_error))
-        V_fn = kkt.get_V_function(lmd)
-        return x, u, lmd, V_fn
+        return x, u, lmd
 
     def eval_Q_kkt(self, x0, u0, x, u, lmd, gmm, params=None):
         assert u0.dim() == 2
@@ -104,8 +97,7 @@ class OCP(nn.Module):
             print('Initial Q-KKT error = ' + str(kkt_error))
         for i in range(iter_max):
             if torch.max(kkt_error) < kkt_tol:
-                Q_fn = kkt.get_Q_function(lmd, gmm)
-                return x, u, lmd, gmm, Q_fn
+                return x, u, lmd, gmm
             else:
                 dx, du, dlmd, dgmm = self.riccati_recursion.Q_riccati_recursion(kkt)
                 x = x + dx
@@ -116,24 +108,30 @@ class OCP(nn.Module):
                 kkt_error = kkt.get_Q_kkt_error()
             if verbose:
                 print('Q-KKT error at ' + str(i+1) + 'th iter = ' + str(kkt_error))
-        Q_fn = kkt.get_Q_function(lmd, gmm)
-        return x, u, lmd, gmm, Q_fn
+        return x, u, lmd, gmm
 
-    # Comptues Q function 
-    def forward(self, x0, u0, x, u, lmd, gmm, params):
+    # Comptues V or Q function 
+    def forward(self, x0, x, u, lmd, params, u0=None, gmm=None):
         if x.dim() == 2:
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
             lmd = lmd.unsqueeze(0)
         N = self.N
         x0res = x[0] - x0 
-        u0res = u[0] - u0
+        if u0 is not None:
+            u0res = u[0] - u0
         l = []
         xres = []
         for i in range(N):
             l.append(self.stage_cost.forward(x[i], u[i], i, params))
             xres.append(self.dynamics.forward(x[i], u[i], params)-x[i+1])
         l.append(self.terminal_cost.forward(x[N], params)) 
-        kkt = KKT(l=l, lxu=None, Q=None, x0res=x0res, xres=xres, F=None, u0res=u0res)
-        Q_fn = kkt.get_Q_function(lmd, gmm)
-        return Q_fn
+        if u0 is not None:
+            assert gmm is not None
+            kkt = KKT(l=l, lxu=None, Q=None, x0res=x0res, xres=xres, F=None, u0res=u0res)
+            Q_fn = kkt.get_Q_function(lmd, gmm)
+            return Q_fn
+        else:
+            kkt = KKT(l=l, lxu=None, Q=None, x0res=x0res, xres=xres, F=None, u0res=None)
+            V_fn = kkt.get_V_function(lmd)
+            return V_fn

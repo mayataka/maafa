@@ -1,8 +1,6 @@
 import torch
+from torch.nn.modules import loss
 from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.sampler import BatchSampler
-
-import numpy as np
 
 
 def mpc_episode(env, mpc, mpc_sim_steps, mpc_sim_batch_size, mpc_iter_max):
@@ -13,7 +11,7 @@ def mpc_episode(env, mpc, mpc_sim_steps, mpc_sim_batch_size, mpc_iter_max):
     Lm = []
     xm1 = []
     for t in range(mpc_sim_steps):
-        u, V = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
+        u = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
         L = mpc.ocp.stage_cost.eval_true(x, u)
         x1 = env.eval(x, u)
         xm.append(x)
@@ -39,9 +37,10 @@ class MPCSimDataset(Dataset):
         return len(self.xm)
 
 
-def train(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, mpc_iter_max=10, 
-          train_mini_batch_size=1, train_iter_per_episode=1, 
-          loss_fn=None, optimizer=None, episodes=100, verbose=False, debug=False):
+def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
+                     mpc_iter_max=10, train_mini_batch_size=1, 
+                     train_iter_per_episode=1, loss_fn=None, 
+                     optimizer=None, episodes=100, verbose=False, debug=False):
     if debug:
         torch.autograd.set_detect_anomaly(True)
     if loss_fn is None:
@@ -65,18 +64,67 @@ def train(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, mpc_iter_max=10,
             for x, u, L, x1 in mpc_data_loader:
                 mpc.Q_step(x, u)
                 Q = mpc.forward(x, u)
-                uopt, V = mpc.mpc_step(x1)
-                pred = L.detach() + mpc.ocp.stage_cost.gamma * V.detach()
-                loss = loss_fn(Q, pred)
+                _u = mpc.mpc_step(x1)
+                V = mpc.forward(x1)
+                Q_expect = L.detach() + mpc.ocp.stage_cost.gamma * V.detach()
+                loss = loss_fn(Q, Q_expect)
                 if verbose:
-                    TD_errors.append((Q-pred).abs().mean().item())
+                    TD_errors.append((Q-Q_expect).abs().mean().item())
                     losses.append(loss.item())
                 optimizer.zero_grad()
                 loss.backward(retain_graph=True)
                 optimizer.step()
             if verbose:
                 print("iter:", iter+1, 
-                      ", TD error(avg):", sum(TD_errors), 
-                      ", loss:", sum(losses))
+                      ", TD error(avg):", sum(TD_errors)/len(TD_errors), 
+                      ", loss(avg):", sum(losses)/len(losses))
+        if verbose:
+            print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))
+
+
+def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
+                          mpc_iter_max=10, loss_fn=None, optimizer=None, 
+                          verbose=False):
+    if loss_fn is None:
+        loss_fn = torch.nn.MSELoss()
+    if optimizer is None:
+        optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
+    x = env.reset(mpc_sim_batch_size, mpc.device)
+    mpc.set_nbatch(mpc_sim_batch_size)
+    for t in range(mpc_sim_steps):
+        u = mpc.mpc_step(x, params=None, iter_max=mpc_iter_max)
+        if t > 0:
+            V = mpc.forward(x)
+            Q_expect = L.detach() + mpc.ocp.stage_cost.gamma * V.detach()
+            loss = loss_fn(Q, Q_expect)
+            optimizer.zero_grad()
+            loss.backward(retain_graph=True)
+            optimizer.step()
+            if verbose:
+                print("t:", t, 
+                      ", TD error(avg):", (Q-Q_expect).abs().mean().item(), 
+                      ", loss(avg):", loss.item())
+        Q = mpc.forward(x, u)
+        L = mpc.ocp.stage_cost.eval_true(x, u)
+        x1 = env.eval(x, u)
+        x = x1
+
+
+def train_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
+                    mpc_iter_max=10, loss_fn=None, optimizer=None, 
+                    episodes=100, verbose=False, debug=False):
+    if debug:
+        torch.autograd.set_detect_anomaly(True)
+    if loss_fn is None:
+        loss_fn = torch.nn.MSELoss()
+    if optimizer is None:
+        optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
+    for episode in range(episodes):
+        if verbose:
+            print("----------- Episode:", episode+1, "-----------")
+        mpc_episode_on_policy(env=env, mpc=mpc, mpc_sim_steps=mpc_sim_steps,
+                              mpc_sim_batch_size=mpc_sim_batch_size,
+                              mpc_iter_max=mpc_iter_max, loss_fn=loss_fn,
+                              optimizer=optimizer, verbose=verbose)
         if verbose:
             print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))

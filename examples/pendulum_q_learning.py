@@ -35,7 +35,7 @@ if __name__ == '__main__':
     model = PendulumDynamics(dt)
 
     # Dynamics and cost params
-    inaccurate_pendulum_params = torch.Tensor((1.0, 0.6, 0.6), device=device)
+    inaccurate_pendulum_params = torch.Tensor((1.0, 0.6, 0.6))
     params = PendulumParams(dyn_params=Parameter(inaccurate_pendulum_params.to(device)),
                             xuref=Parameter(stage_cost.default_xuref.to(device)),
                             xuweight=Parameter(stage_cost.default_xuweight.to(device)),
@@ -45,23 +45,24 @@ if __name__ == '__main__':
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
-    # Q-learning settings
+    # Q-learning 
     loss_fn = torch.nn.MSELoss()
     learning_rate = 1.0e-03
     optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-    mpc_sim_time = 2.
-    mpc_sim_steps = math.floor(mpc_sim_time/model.dt) 
-    mpc_sim_batch_size = 4
-    mpc_iter_max = 10
-    train_mini_batch_size = 4
-    train_iter_per_episode = 5
-    maafa.q_learning.train(env=model, mpc=mpc, mpc_sim_steps=mpc_sim_steps, 
-                           mpc_sim_batch_size=mpc_sim_batch_size, 
-                           mpc_iter_max=mpc_iter_max, 
-                           train_mini_batch_size=train_mini_batch_size, 
-                           train_iter_per_episode=train_iter_per_episode, 
-                           loss_fn=loss_fn, optimizer=optimizer, 
-                           episodes=100, verbose=True)
+
+    # maafa.q_learning.train_off_policy(env=model, mpc=mpc, mpc_sim_steps=1, 
+    #                                   mpc_sim_batch_size=128, mpc_iter_max=10, 
+    #                                   train_mini_batch_size=4, 
+    #                                   train_iter_per_episode=20, 
+    #                                   loss_fn=loss_fn, optimizer=optimizer, 
+    #                                   episodes=100, verbose=True)
+
+    maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
+                                     mpc_sim_steps=math.floor(5.0/dt), 
+                                     mpc_sim_batch_size=128, 
+                                     mpc_iter_max=10, 
+                                     loss_fn=loss_fn, optimizer=optimizer, 
+                                     episodes=100, verbose=True)
 
     print("MPC parameters after Q-learning:")
     print(list(mpc.parameters()))
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u, V = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
+        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
         x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4

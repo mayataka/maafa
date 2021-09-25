@@ -30,7 +30,7 @@ if __name__ == '__main__':
     dt = T / N
     discount_factor = 0.99 
     params_mpc = PendulumParams()
-    inaccurate_pendulum_params = torch.Tensor((1.0, 0.5, 0.5), device=device)
+    inaccurate_pendulum_params = torch.Tensor((1.0, 0.5, 0.5))
     params_mpc.dyn_params = inaccurate_pendulum_params
     dynamics = PendulumDynamics(dt, params=params_mpc) # inaccurate dynamics
     terminal_cost = PendulumTerminalCost()
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u, V = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
+        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
         x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4

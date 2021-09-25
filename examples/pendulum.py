@@ -52,7 +52,7 @@ if __name__ == '__main__':
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u, V = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
+        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
         x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4
