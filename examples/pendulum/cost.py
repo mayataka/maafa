@@ -78,8 +78,8 @@ class PendulumStageCost(torch.nn.Module):
         self.gamma = gamma
         self.default_xuref = torch.Tensor([0., 0., 0.])
         self.default_xuweight = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
-        self.xuref_true = self.default_xuref
-        self.xuweight_true = self.default_xuweight
+        self.xuref_true = self.default_xuref.detach().clone()
+        self.xuweight_true = self.default_xuweight.detach().clone()
         if params is not None:
             if params.xuref is not None:
                 self.xuref = params.xuref

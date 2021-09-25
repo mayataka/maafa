@@ -39,9 +39,9 @@ class MPCSimDataset(Dataset):
 
 def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
                      mpc_iter_max=10, train_mini_batch_size=1, 
-                     train_iter_per_episode=1, loss_fn_type=None, 
-                     optimizer_type=None, learning_rate=1.0e-03,
-                     episodes=100, verbose=False, debug=False):
+                     train_iter_per_episode=1, loss_fn=None, optimizer=None, 
+                     learning_rate=1.0e-03, episodes=100, verbose=False, 
+                     debug=False):
     torch.autograd.set_detect_anomaly(debug)
     for episode in range(episodes):
         if verbose:
@@ -53,13 +53,9 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
                                      batch_size=train_mini_batch_size, 
                                      shuffle=True, drop_last=True)
         mpc.set_nbatch(train_mini_batch_size)
-        if loss_fn_type is not None:
-            loss_fn = loss_fn_type()
-        else:
+        if loss_fn is None:
             loss_fn = torch.nn.MSELoss()
-        if optimizer_type is not None:
-            optimizer = optimizer_type(mpc.parameters(), lr=learning_rate)
-        else:
+        if optimizer is None:
             optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
         for iter in range(train_iter_per_episode):
             if verbose:
@@ -89,16 +85,11 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
 
 
 def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
-                          mpc_iter_max=10, loss_fn_type=None, 
-                          optimizer_type=None, learning_rate=1.0e-03, 
-                          verbose=False, debug=False):
-    if loss_fn_type is not None:
-        loss_fn = loss_fn_type()
-    else:
+                          mpc_iter_max=10, loss_fn=None, optimizer=None, 
+                          learning_rate=1.0e-03, verbose=False, debug=False):
+    if loss_fn is None:
         loss_fn = torch.nn.MSELoss()
-    if optimizer_type is not None:
-        optimizer = optimizer_type(mpc.parameters(), lr=learning_rate)
-    else:
+    if optimizer is None:
         optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
     x = env.reset(mpc_sim_batch_size, mpc.device)
     mpc.set_nbatch(mpc_sim_batch_size)
@@ -125,7 +116,7 @@ def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
 
 
 def train_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
-                    mpc_iter_max=10, loss_fn_type=None, optimizer_type=None, 
+                    mpc_iter_max=10, loss_fn=None, optimizer=None, 
                     learning_rate=1.0e-03, episodes=100, verbose=False, 
                     debug=False):
     torch.autograd.set_detect_anomaly(debug)
@@ -134,9 +125,8 @@ def train_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
             print("----------- Episode:", episode+1, "-----------")
         mpc_episode_on_policy(env=env, mpc=mpc, mpc_sim_steps=mpc_sim_steps,
                               mpc_sim_batch_size=mpc_sim_batch_size,
-                              mpc_iter_max=mpc_iter_max, 
-                              loss_fn_type=loss_fn_type,
-                              optimizer_type=optimizer_type, 
-                              learning_rate=learning_rate, verbose=verbose)
+                              mpc_iter_max=mpc_iter_max, loss_fn=loss_fn, 
+                              optimizer=optimizer, learning_rate=learning_rate, 
+                              verbose=verbose)
         if verbose:
             print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))

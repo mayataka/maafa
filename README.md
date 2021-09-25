@@ -17,9 +17,18 @@ This is an un-official PyTorch implementation of a very interesting and groundbr
 }
 ```
 
+
 MPC-RL is currently implemented as:
 - The MPC problem is discretized by the direct multiple shooting method.
 - The KKT system to compute the Newton step is solved by Riccati recursion, in which a batch implementation is considered (this is inspired by [mpc.pytorch](https://github.com/locuslab/mpc.pytorch)).
 - Q-learning for MPC function approximator
 - Only the quadratic cost function is allowed.
 - No economic cost can be considered (because we have not implemented the cost rotation yet).
+- No constraints are considered.
+   
+
+
+Pendulum example (left: before Q-learning, right: after Q-learning)
+
+<img src="https://raw.githubusercontent.com/wiki/mayataka/maafa/images/pendulum_inaccurate.gif" width="250"> &nbsp;
+<img src="https://raw.githubusercontent.com/wiki/mayataka/maafa/images/pendulum_q_learning.gif" width="250">
