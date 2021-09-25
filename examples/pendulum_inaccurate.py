@@ -29,7 +29,10 @@ if __name__ == '__main__':
     N = 10
     dt = T / N
     discount_factor = 0.99 
-    dynamics = PendulumDynamics(dt)
+    params_mpc = PendulumParams()
+    inaccurate_pendulum_params = torch.Tensor((1.0, 0.5, 0.5), device=device)
+    params_mpc.dyn_params = inaccurate_pendulum_params
+    dynamics = PendulumDynamics(dt, params=params_mpc) # inaccurate dynamics
     terminal_cost = PendulumTerminalCost()
     stage_cost = PendulumStageCost(dt, discount_factor)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
@@ -38,9 +41,7 @@ if __name__ == '__main__':
     x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
 
     # simulation model
-    params_true = PendulumParams()
-    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0), device=device)
-    model = PendulumDynamics(dt, params=params_true)
+    model = PendulumDynamics(dt)
 
     # Dynamics and cost params
     params = PendulumParams()

@@ -31,8 +31,21 @@ class OCP(nn.Module):
             x = x.unsqueeze(0)
             u = u.unsqueeze(0)
             lmd = lmd.unsqueeze(0)
+        if x.dim() == 2:
+            x = x.unsqueeze(0)
+            u = u.unsqueeze(0)
+            lmd = lmd.unsqueeze(0)
+        assert x0.dim() == 2
+        assert x.dim() == 3
+        assert u.dim() == 3
+        assert lmd.dim() == 3
         N = self.N
         x0res = x[0] - x0 
+        # print("x0res:", x0res)
+        # print("x[0]:", x[0])
+        # print("x0:", x0)
+        # print("x[0].dim():", x[0].dim())
+        # print("x0.dim():", x0.dim())
         l = []
         lxu = []
         Q = []
@@ -61,7 +74,7 @@ class OCP(nn.Module):
             print('Initial KKT error = ' + str(kkt_error))
         for i in range(iter_max):
             if torch.max(kkt_error) < kkt_tol:
-                V_fn = kkt.get_lagrangian(lmd)
+                V_fn = kkt.get_V_function(lmd)
                 return x, u, lmd, V_fn
             else:
                 dx, du, dlmd = self.riccati_recursion.riccati_recursion(kkt)
@@ -72,10 +85,12 @@ class OCP(nn.Module):
                 kkt_error = kkt.get_kkt_error()
             if verbose:
                 print('KKT error at ' + str(i+1) + 'th iter = ' + str(kkt_error))
-        V_fn = kkt.get_lagrangian(lmd)
+        V_fn = kkt.get_V_function(lmd)
         return x, u, lmd, V_fn
 
     def eval_Q_kkt(self, x0, u0, x, u, lmd, gmm, params=None):
+        assert u0.dim() == 2
+        assert gmm.dim() == 2
         kkt = self.eval_kkt(x0, x, u, lmd, params)
         u0res = u[0] - u0
         kkt.lxu[0][:, self.dimx:] = kkt.lxu[0][:, self.dimx:] + gmm

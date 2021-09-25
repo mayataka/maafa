@@ -32,12 +32,11 @@ if __name__ == '__main__':
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, device=device)
 
     # simulation model
-    params_true = PendulumParams()
-    params_true.dyn_params = torch.Tensor((1.0, 2.5, 2.0), device=device)
-    model = PendulumDynamics(dt, params=params_true)
+    model = PendulumDynamics(dt)
 
     # Dynamics and cost params
-    params = PendulumParams(dyn_params=Parameter(dynamics.default_params.to(device)),
+    inaccurate_pendulum_params = torch.Tensor((1.0, 0.6, 0.6), device=device)
+    params = PendulumParams(dyn_params=Parameter(inaccurate_pendulum_params.to(device)),
                             xuref=Parameter(stage_cost.default_xuref.to(device)),
                             xuweight=Parameter(stage_cost.default_xuweight.to(device)),
                             xfref=Parameter(terminal_cost.default_xfref.to(device)),
@@ -46,15 +45,23 @@ if __name__ == '__main__':
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
+    # Q-learning settings
     loss_fn = torch.nn.MSELoss()
     learning_rate = 1.0e-03
     optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-    QL_mpc_sim_steps = math.floor(2.0/dynamics.dt) 
-    QL_batch_size = 1
-    QL_mpc_iter_max = 10
-    maafa.q_learning.train(model, mpc, QL_mpc_sim_steps, QL_batch_size, 
-                           QL_mpc_iter_max, loss_fn=loss_fn, 
-                           optimizer=optimizer, episodes=100, verbose=True)
+    mpc_sim_time = 2.
+    mpc_sim_steps = math.floor(mpc_sim_time/model.dt) 
+    mpc_sim_batch_size = 4
+    mpc_iter_max = 10
+    train_mini_batch_size = 4
+    train_iter_per_episode = 5
+    maafa.q_learning.train(env=model, mpc=mpc, mpc_sim_steps=mpc_sim_steps, 
+                           mpc_sim_batch_size=mpc_sim_batch_size, 
+                           mpc_iter_max=mpc_iter_max, 
+                           train_mini_batch_size=train_mini_batch_size, 
+                           train_iter_per_episode=train_iter_per_episode, 
+                           loss_fn=loss_fn, optimizer=optimizer, 
+                           episodes=100, verbose=True)
 
     print("MPC parameters after Q-learning:")
     print(list(mpc.parameters()))

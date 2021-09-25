@@ -29,6 +29,10 @@ class KKT(object):
         return A, B, xres
 
     def get_kkt_error(self):
+        # print("self.x0res: ", self.x0res)
+        # print("norm(self.x0res): ", torch.norm(self.x0res, dim=1))
+        # print("self.xres[0]: ", self.xres[0])
+        # print("norm(self.xres[0]): ", torch.norm(self.xres[0], dim=1))
         norm = torch.norm(self.x0res, dim=1)
         for i in range(len(self.xres)):
             norm = norm + torch.norm(self.xres[i], dim=1)
@@ -42,17 +46,17 @@ class KKT(object):
             norm = norm + torch.norm(self.u0res, dim=1)
         return norm
 
-    def get_lagrangian(self, lmd):
+    def get_V_function(self, lmd):
         nbatch = lmd.shape[1]
-        lag = self.l[self.N]
+        V = self.l[self.N]
         for i in range(self.N):
-            lag = lag + self.l[i]
-            lag = lag + torch.stack([lmd[i+1, j].dot(self.xres[i][j]) for j in range(nbatch)])
-        lag = lag - torch.stack([lmd[0, j].dot(self.x0res[j]) for j in range(nbatch)])
-        return lag
+            V = V + self.l[i]
+            V = V + torch.stack([lmd[i+1, j].dot(self.xres[i][j]) for j in range(nbatch)])
+        V = V - torch.stack([lmd[0, j].dot(self.x0res[j]) for j in range(nbatch)])
+        return V
 
     def get_Q_function(self, lmd, gmm):
-        lag = self.get_lagrangian(lmd)
+        Q = self.get_V_function(lmd)
         nbatch = gmm.shape[0]
-        lag = lag + torch.stack([gmm[j].dot(self.u0res[j]) for j in range(nbatch)])
-        return lag
+        Q = Q + torch.stack([gmm[j].dot(self.u0res[j]) for j in range(nbatch)])
+        return Q
