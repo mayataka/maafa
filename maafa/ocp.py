@@ -1,9 +1,6 @@
 import torch
 from torch import nn
 
-import numpy as np
-from torch._C import Value
-
 from .riccati_recursion import RiccatiRecursion
 from .kkt import KKT
 from . import utils

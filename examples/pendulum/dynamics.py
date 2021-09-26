@@ -1,5 +1,4 @@
 import torch
-from torch._C import device
 from torch.autograd import Variable
 import numpy as np
 
@@ -52,8 +51,6 @@ class PendulumDynamics(torch.nn.Module):
         bth, bdth = torch.unbind(self.bias)
         bth = bth.clone()
         bdth = bdth.clone()
-        # nbatch = x.shape[0]
-        # device = x.device
         th_res = th + self.dt * dth + bth 
         dth_res = dth + self.dt * ddth + bdth 
         return torch.stack([th_res, dth_res]).transpose(1, 0).squeeze(-1)

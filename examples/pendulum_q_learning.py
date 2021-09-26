@@ -57,7 +57,7 @@ if __name__ == '__main__':
                                       mpc_sim_steps=math.floor(0.1/dt), 
                                       mpc_sim_batch_size=256, 
                                       mpc_iter_max=10, 
-                                      train_mini_batch_size=64, 
+                                      train_mini_batch_size=16, 
                                       train_iter_per_episode=10, 
                                       loss_fn=loss_fn, 
                                       optimizer=optimizer, 
