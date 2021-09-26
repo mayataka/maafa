@@ -9,7 +9,6 @@ import tempfile
 
 import maafa
 from pendulum.dynamics import PendulumDynamics
-from pendulum.cost import PendulumTerminalCost, PendulumStageCost
 from pendulum.params import PendulumParams
 
 import matplotlib
@@ -26,53 +25,45 @@ if __name__ == '__main__':
     N = 10
     dt = T / N
     discount_factor = 0.99 
-    dynamics = PendulumDynamics(dt)
-    terminal_cost = PendulumTerminalCost()
-    stage_cost = PendulumStageCost(dt, discount_factor)
-    mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, device=device)
+    params_mpc = PendulumParams()
+    params_mpc.dyn_params = Parameter(torch.Tensor([10.0, 0.3, 0.3]))
+    params_mpc.xfref = params_mpc.xfref.data
+    params_mpc.xuref = params_mpc.xuref.data
+    dynamics = PendulumDynamics(dt, params_mpc)
+    terminal_cost = maafa.cost.QuadraticTerminalCost(params_mpc)
+    stage_cost = maafa.cost.QuadraticStageCost(dt, discount_factor, params_mpc)
+    mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=1, device=device)
 
     # simulation model
-    model = PendulumDynamics(dt)
+    true_params = PendulumParams()
+    model = PendulumDynamics(dt, true_params)
 
-    # Dynamics and cost params
-    inaccurate_pendulum_params = torch.Tensor((1.0, 0.6, 0.6))
-    params = PendulumParams(dyn_params=Parameter(inaccurate_pendulum_params.to(device)),
-                            dyn_bias=Parameter(dynamics.default_dyn_bias.to(device)),
-                            # xuref=Parameter(stage_cost.default_xuref.to(device)),
-                            L_hess=Parameter(stage_cost.default_L_hess.to(device)),
-                            L_grad=Parameter(stage_cost.default_L_grad.to(device)),
-                            L_const=Parameter(stage_cost.default_L_const.to(device)),
-                            # xfref=Parameter(terminal_cost.default_xfref.to(device)),
-                            Vf_hess=Parameter(terminal_cost.default_Vf_hess.to(device)),
-                            Vf_grad=Parameter(terminal_cost.default_Vf_grad.to(device)),
-                            Vf_const=Parameter(terminal_cost.default_Vf_const.to(device)))
-    mpc.set_params(params)
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
-    ### Off-policy Q-learning 
-    loss_fn = torch.nn.MSELoss()
-    optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
-    maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
-                                      mpc_sim_steps=math.floor(0.1/dt), 
-                                      mpc_sim_batch_size=256, 
-                                      mpc_iter_max=10, 
-                                      train_mini_batch_size=16, 
-                                      train_iter_per_episode=10, 
-                                      loss_fn=loss_fn, 
-                                      optimizer=optimizer, 
-                                      episodes=5, verbose=True)
-
-    # ### On-policy (on-line) Q-learning (the MPC parameters are updated after the each MPC step)
+    # ### Off-policy Q-learning 
     # loss_fn = torch.nn.MSELoss()
-    # optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
-    # maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
-    #                                  mpc_sim_steps=math.floor(0.1/dt), 
-    #                                  mpc_sim_batch_size=1,
-    #                                  mpc_iter_max=10, 
-    #                                  loss_fn=loss_fn, 
-    #                                  optimizer=optimizer, 
-    #                                  episodes=1000, verbose=True)
+    # optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
+    # maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
+    #                                   mpc_sim_steps=math.floor(0.1/dt), 
+    #                                   mpc_sim_batch_size=64, 
+    #                                   mpc_iter_max=10, 
+    #                                   train_mini_batch_size=4, 
+    #                                   train_iter_per_episode=10, 
+    #                                   loss_fn=loss_fn, 
+    #                                   optimizer=optimizer, 
+    #                                   episodes=10, verbose=True)
+
+    ### On-policy (on-line) Q-learning (the MPC parameters are updated after the each MPC step)
+    loss_fn = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
+    maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
+                                     mpc_sim_steps=math.floor(5.0/dt), 
+                                     mpc_sim_batch_size=1,
+                                     mpc_iter_max=10, 
+                                     loss_fn=loss_fn, 
+                                     optimizer=optimizer, 
+                                     episodes=100, verbose=True)
 
     # print("MPC parameters after Q-learning:")
     # print(list(mpc.parameters()))

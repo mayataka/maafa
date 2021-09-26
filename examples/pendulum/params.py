@@ -1,14 +1,22 @@
+import torch
+from torch.nn.parameter import Parameter
+
+
 class PendulumParams(object):
-    def __init__(self, dyn_params=None, dyn_bias=None,
-                 xuref=None, L_hess=None, L_grad=None, L_const=None,
-                 xfref=None, Vf_hess=None, Vf_grad=None, Vf_const=None):
-        self.dyn_params = dyn_params
-        self.dyn_bias = dyn_bias
-        self.xuref = xuref
-        self.L_hess = L_hess
-        self.L_grad = L_grad
-        self.L_const = L_const
-        self.xfref = xfref
-        self.Vf_hess = Vf_hess
-        self.Vf_grad = Vf_grad
-        self.Vf_const = Vf_const
+    def __init__(self):
+        # Dynamics parameters 
+        self.dyn_params = Parameter(torch.Tensor([10., 1., 1.]))
+        self.dyn_bias = Parameter(torch.Tensor([0., 0.]))
+        # Stage cost parameters 
+        self.xuref = Parameter(torch.Tensor([0., 0., 0.]))
+        self.L_hess = Parameter(torch.Tensor([[1., 0., 0.], 
+                                              [0., 0.1, 0.], 
+                                              [0., 0., 0.001]]))
+        self.L_grad = torch.Tensor([0., 0., 0.])
+        self.L_const = torch.Tensor([0.])
+        # Terminal cost parameters 
+        self.xfref = Parameter(torch.Tensor([0., 0.])) 
+        self.Vf_hess =  Parameter(torch.Tensor([[1., 0.], 
+                                                [0., 0.1,]]))
+        self.Vf_grad = Parameter(torch.Tensor([0., 0.]))
+        self.Vf_const = Parameter(torch.Tensor([0.]))

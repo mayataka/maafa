@@ -1,27 +1,24 @@
 import torch
-from torch.autograd import Variable
+from torch.nn.parameter import Parameter
 import numpy as np
 
 from matplotlib import pyplot as plt
 
+from maafa import utils
+
 
 class PendulumDynamics(torch.nn.Module):
-    def __init__(self, dt=0.05, params=None):
+    def __init__(self, dt, params):
         super(PendulumDynamics, self).__init__()
+        assert dt > 0.
         self.dimx = 2
         self.dimu = 1
         self.dt = dt
         # gravity (g), mass (m), length (l)
-        self.default_params = Variable(torch.Tensor((10., 1., 1.)))
-        self.default_dyn_bias = Variable(torch.Tensor((0., 0.)))
-        if params is not None and params.dyn_params is not None:
-            self.params = params.dyn_params
-        else:
-            self.params = self.default_params
-        if params is not None and params.dyn_bias is not None:
-            self.bias = params.dyn_bias
-        else:
-            self.bias = self.default_dyn_bias 
+        self.params = params.dyn_params
+        self.bias = params.dyn_bias
+        self.default_params = utils.get_data(params.dyn_params).detach().clone()
+        self.default_bias = utils.get_data(params.dyn_bias).detach().clone()
 
     def set_params(self, params):
         if params is not None and params.dyn_params is not None:
@@ -41,8 +38,8 @@ class PendulumDynamics(torch.nn.Module):
         if x.is_cuda and not self.params.is_cuda:
             self.params = self.params.cuda()
         g, m, l = torch.unbind(self.params)
-        g = torch.Tensor([1.0])
-        # g = g.clone()
+        g = g.clone()
+        # g = torch.ones(1)
         m = m.clone()
         l = l.clone()
         th = x[:, 0].view(-1, 1)
@@ -68,8 +65,8 @@ class PendulumDynamics(torch.nn.Module):
             self.params = self.params.cuda()
         nbatch = x.shape[0]
         g, m, l = torch.unbind(self.params)
-        # g = g.clone()
-        g = torch.Tensor([1.0])
+        g = g.clone()
+        # g = torch.ones(1)
         m = m.clone()
         l = l.clone()
         th = x[:, 0].view(-1, 1)

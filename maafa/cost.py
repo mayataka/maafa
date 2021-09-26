@@ -4,35 +4,17 @@ from torch.autograd import Variable
 from maafa import utils
 
 
-class PendulumTerminalCost(torch.nn.Module):
-    def __init__(self, params=None):
-        super(PendulumTerminalCost, self).__init__()
-        self.default_xfref = torch.Tensor([0., 0.])
-        self.default_Vf_hess = torch.Tensor([[1., 0.], [0., 0.1,]])
-        self.default_Vf_grad = torch.Tensor([0., 0.])
-        self.default_Vf_const = torch.Tensor([0.])
-        if params is not None:
-            if params.xfref is not None:
-                self.xfref = params.xfref
-            else:
-                self.xfref = Variable(self.default_xfref) 
-            if params.Vf_hess is not None:
-                self.Vf_hess = params.Vf_hess
-            else:
-                self.Vf_hess = Variable(self.default_Vf_hess) 
-            if params.Vf_grad is not None:
-                self.Vf_grad = params.Vf_grad
-            else:
-                self.Vf_grad = Variable(self.default_Vf_grad)
-            if params.Vf_const is not None:
-                self.Vf_const = params.Vf_const
-            else:
-                self.Vf_const = Variable(self.default_Vf_const)
-        else: 
-            self.xfref = Variable(self.default_xfref) 
-            self.Vf_hess = Variable(self.default_Vf_hess) 
-            self.Vf_grad = Variable(self.default_Vf_grad)
-            self.Vf_const = Variable(self.default_Vf_const)
+class QuadraticTerminalCost(torch.nn.Module):
+    def __init__(self, params):
+        super(QuadraticTerminalCost, self).__init__()
+        self.default_xfref = utils.get_data(params.xfref).detach().clone()
+        self.default_Vf_hess = utils.get_data(params.Vf_hess).detach().clone()
+        self.default_Vf_grad = utils.get_data(params.Vf_grad).detach().clone()
+        self.default_Vf_const = utils.get_data(params.Vf_const).detach().clone()
+        self.xfref = params.xfref
+        self.Vf_hess = params.Vf_hess
+        self.Vf_grad = params.Vf_grad
+        self.Vf_const = params.Vf_const
 
     def set_params(self, params):
         if params is not None:
@@ -97,39 +79,21 @@ class PendulumTerminalCost(torch.nn.Module):
         return self.eval(x)
 
 
-class PendulumStageCost(torch.nn.Module):
-    def __init__(self, dt, gamma, params=None):
-        super(PendulumStageCost, self).__init__()
+class QuadraticStageCost(torch.nn.Module):
+    def __init__(self, dt, gamma, params):
+        super(QuadraticStageCost, self).__init__()
         self.dt = dt
         self.gamma = gamma
-        self.default_xuref = torch.Tensor([0., 0., 0.])
-        self.default_L_hess = torch.Tensor([[1., 0., 0.], [0., 0.1, 0.], [0., 0., 0.001]])
-        self.default_L_grad = torch.Tensor([0., 0., 0.])
-        self.default_L_const = torch.Tensor([0.])
+        self.default_xuref = utils.get_data(params.xuref).detach().clone()
+        self.default_L_hess = utils.get_data(params.L_hess).detach().clone()
+        self.default_L_grad = utils.get_data(params.L_grad).detach().clone()
+        self.default_L_const = utils.get_data(params.L_const).detach().clone()
         self.xuref_true = self.default_xuref.detach().clone()
         self.L_hess_true = self.default_L_hess.detach().clone()
-        if params is not None:
-            if params.xuref is not None:
-                self.xuref = params.xuref
-            else:
-                self.xuref = Variable(self.default_xuref) 
-            if params.L_hess is not None:
-                self.L_hess = params.L_hess
-            else:
-                self.L_hess = Variable(self.default_L_hess) 
-            if params.L_grad is not None:
-                self.L_grad = params.L_grad
-            else:
-                self.L_grad = Variable(self.default_L_grad)
-            if params.L_const is not None:
-                self.L_const = params.L_const
-            else:
-                self.L_const = Variable(self.default_L_const)
-        else: 
-            self.xuref = Variable(self.default_xuref) 
-            self.L_hess = Variable(self.default_L_hess) 
-            self.L_grad = Variable(self.default_L_grad)
-            self.L_const = Variable(self.default_L_const)
+        self.xuref = params.xuref
+        self.L_hess = params.L_hess
+        self.L_grad = params.L_grad
+        self.L_const = params.L_const
 
     def set_params(self, params):
         if params is not None and params.xuref is not None:

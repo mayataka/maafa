@@ -8,6 +8,7 @@ class MPC(nn.Module):
     def __init__(self, dynamics, stage_cost, terminal_cost, N, GaussNewton=True, 
                  nbatch=1, device=None):
         super().__init__()
+        assert nbatch >= 1
         self.ocp = ocp.OCP(dynamics, stage_cost, terminal_cost, N, GaussNewton)
         self.x = torch.zeros(N+1, nbatch, dynamics.dimx, device=device)
         self.u = torch.zeros(N, nbatch, dynamics.dimu, device=device)

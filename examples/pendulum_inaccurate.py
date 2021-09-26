@@ -9,7 +9,6 @@ import tempfile
 
 import maafa
 from pendulum.dynamics import PendulumDynamics
-from pendulum.cost import PendulumTerminalCost, PendulumStageCost
 from pendulum.params import PendulumParams
 
 import matplotlib
@@ -30,15 +29,15 @@ if __name__ == '__main__':
     dt = T / N
     discount_factor = 0.99 
     params_mpc = PendulumParams()
-    inaccurate_pendulum_params = torch.Tensor((1.0, 0.5, 0.5))
-    params_mpc.dyn_params = inaccurate_pendulum_params
-    dynamics = PendulumDynamics(dt, params=params_mpc) # inaccurate dynamics
-    terminal_cost = PendulumTerminalCost()
-    stage_cost = PendulumStageCost(dt, discount_factor)
+    params_mpc.dyn_params = Parameter(torch.Tensor([10.0, 0.3, 0.3]))
+    dynamics = PendulumDynamics(dt, params_mpc)
+    terminal_cost = maafa.cost.QuadraticTerminalCost(params_mpc)
+    stage_cost = maafa.cost.QuadraticStageCost(dt, discount_factor, params_mpc)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
 
     # simulation model
-    model = PendulumDynamics(dt)
+    true_params = PendulumParams()
+    model = PendulumDynamics(dt, true_params)
 
     # initial states
     x0 = model.reset(nbatch, device=device)

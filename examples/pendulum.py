@@ -9,7 +9,6 @@ import tempfile
 
 import maafa
 from pendulum.dynamics import PendulumDynamics
-from pendulum.cost import PendulumTerminalCost, PendulumStageCost
 from pendulum.params import PendulumParams
 
 import matplotlib
@@ -29,13 +28,14 @@ if __name__ == '__main__':
     N = 10
     dt = T / N
     discount_factor = 0.99 
-    dynamics = PendulumDynamics(dt)
-    terminal_cost = PendulumTerminalCost()
-    stage_cost = PendulumStageCost(dt, discount_factor)
+    params = PendulumParams()
+    dynamics = PendulumDynamics(dt, params)
+    terminal_cost = maafa.cost.QuadraticTerminalCost(params)
+    stage_cost = maafa.cost.QuadraticStageCost(dt, discount_factor, params)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
 
     # simulation model
-    model = PendulumDynamics(dt)
+    model = PendulumDynamics(dt, params)
 
     # initial states
     x0 = model.reset(nbatch, device=device)
