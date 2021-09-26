@@ -50,29 +50,29 @@ if __name__ == '__main__':
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
-    # ### Off-policy Q-learning 
-    # loss_fn = torch.nn.MSELoss()
-    # optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
-    # maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
-    #                                   mpc_sim_steps=math.floor(0.1/dt), 
-    #                                   mpc_sim_batch_size=256, 
-    #                                   mpc_iter_max=10, 
-    #                                   train_mini_batch_size=64, 
-    #                                   train_iter_per_episode=20, 
-    #                                   loss_fn=loss_fn, 
-    #                                   optimizer=optimizer, 
-    #                                   episodes=20, verbose=True)
-
-    ### On-policy (on-line) Q-learning (the MPC parameters are updated after each MPC step)
+    ### Off-policy Q-learning 
     loss_fn = torch.nn.MSELoss()
     optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
-    maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
-                                     mpc_sim_steps=math.floor(0.1/dt), 
-                                     mpc_sim_batch_size=1,
-                                     mpc_iter_max=10, 
-                                     loss_fn=loss_fn, 
-                                     optimizer=optimizer, 
-                                     episodes=1000, verbose=True)
+    maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
+                                      mpc_sim_steps=math.floor(0.1/dt), 
+                                      mpc_sim_batch_size=256, 
+                                      mpc_iter_max=10, 
+                                      train_mini_batch_size=64, 
+                                      train_iter_per_episode=10, 
+                                      loss_fn=loss_fn, 
+                                      optimizer=optimizer, 
+                                      episodes=5, verbose=True)
+
+    # ### On-policy (on-line) Q-learning (the MPC parameters are updated after the each MPC step)
+    # loss_fn = torch.nn.MSELoss()
+    # optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
+    # maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
+    #                                  mpc_sim_steps=math.floor(0.1/dt), 
+    #                                  mpc_sim_batch_size=1,
+    #                                  mpc_iter_max=10, 
+    #                                  loss_fn=loss_fn, 
+    #                                  optimizer=optimizer, 
+    #                                  episodes=1000, verbose=True)
 
     # print("MPC parameters after Q-learning:")
     # print(list(mpc.parameters()))

@@ -1,6 +1,8 @@
 import torch
 from torch.autograd import Variable 
 
+from maafa import utils
+
 
 class PendulumTerminalCost(torch.nn.Module):
     def __init__(self, params=None):
@@ -43,18 +45,9 @@ class PendulumTerminalCost(torch.nn.Module):
             if params.Vf_const is not None:
                 self.Vf_const = params.Vf_const
 
-    def symmetrize(self, X):
-        return X.triu() + X.triu(1).transpose(-1, -2)
-
-    def make_positive_definite(self, X, eps=1.0e-06):
-        assert eps >= 0.
-        Lmd, V = torch.linalg.eig(X)
-        Lmd.real = torch.clamp(Lmd.real, min=eps)
-        return V.mm(torch.diag(Lmd)).mm(V.transpose(0, 1)).real
-
     def check_hessian(self, eps=1.0e-06):
-        self.Vf_hess.data = self.symmetrize(self.Vf_hess.data)
-        self.Vf_hess.data = self.make_positive_definite(self.Vf_hess.data, eps)
+        self.Vf_hess.data = utils.symmetrize(self.Vf_hess.data)
+        self.Vf_hess.data = utils.make_positive_definite(self.Vf_hess.data, eps)
 
     def eval(self, x):
         if x.dim() == 1:
@@ -64,7 +57,7 @@ class PendulumTerminalCost(torch.nn.Module):
             self.Vf_hess = self.Vf_hess.cuda()
         xfref = self.xfref.clone()
         Vf_hess = self.Vf_hess.clone()
-        Vf_hess = self.symmetrize(Vf_hess)
+        Vf_hess = utils.symmetrize(Vf_hess)
         xdiff = x - xfref
         Wxdiff = Vf_hess.mm(xdiff.transpose(0, 1)).transpose(1, 0)
         Vf = torch.stack([xdiff[i].dot(Wxdiff[i]) for i in range(x.shape[0])])
@@ -82,7 +75,7 @@ class PendulumTerminalCost(torch.nn.Module):
             self.Vf_hess = self.Vf_hess.cuda()
         xfref = self.xfref.clone()
         Vf_hess = self.Vf_hess.clone()
-        Vf_hess = self.symmetrize(Vf_hess)
+        Vf_hess = utils.symmetrize(Vf_hess)
         xdiff = x - xfref
         Vfx = Vf_hess.mm(xdiff.transpose(0, 1)).transpose(1, 0)
         Vf_grad = self.Vf_grad.clone()
@@ -96,7 +89,7 @@ class PendulumTerminalCost(torch.nn.Module):
             self.xfref = self.xfref.cuda()
             self.Vf_hess = self.Vf_hess.cuda()
         Vf_hess = self.Vf_hess.clone()
-        Vf_hess = self.symmetrize(Vf_hess)
+        Vf_hess = utils.symmetrize(Vf_hess)
         Vfxx = torch.stack([Vf_hess for i in range (x.shape[0])]) 
         return Vfxx
 
@@ -148,18 +141,9 @@ class PendulumStageCost(torch.nn.Module):
         if params.L_const is not None:
             self.L_const = params.L_const
 
-    def symmetrize(self, X):
-        return X.triu() + X.triu(1).transpose(-1, -2)
-
-    def make_positive_definite(self, X, eps=1.0e-06):
-        assert eps >= 0.
-        Lmd, V = torch.linalg.eig(X)
-        Lmd.real = torch.clamp(Lmd.real, min=eps)
-        return torch.real(V.mm(torch.diag(Lmd)).mm(V.transpose(0, 1)))
-
     def check_hessian(self, eps=1.0e-06):
-        self.L_hess.data = self.symmetrize(self.L_hess.data)
-        self.L_hess.data = self.make_positive_definite(self.L_hess.data, eps)
+        self.L_hess.data = utils.symmetrize(self.L_hess.data)
+        self.L_hess.data = utils.make_positive_definite(self.L_hess.data, eps)
 
     def eval_true(self, x, u):
         if x.dim() == 1:
@@ -175,7 +159,7 @@ class PendulumStageCost(torch.nn.Module):
             self.L_hess_true = self.L_hess_true.cuda()
         xuref = self.xuref_true.clone()
         L_hess = self.L_hess_true.clone()
-        L_hess = self.symmetrize(L_hess)
+        L_hess = utils.symmetrize(L_hess)
         xu = torch.cat([x.transpose(0, 1), u.transpose(0, 1)]).transpose(1, 0)
         xudiff = xu - xuref
         Wxudiff = L_hess.mm(xudiff.transpose(0, 1)).transpose(1, 0)
@@ -196,7 +180,7 @@ class PendulumStageCost(torch.nn.Module):
             self.L_hess = self.L_hess.cuda()
         xuref = self.xuref.clone()
         L_hess = self.L_hess.clone()
-        L_hess = self.symmetrize(L_hess)
+        L_hess = utils.symmetrize(L_hess)
         xu = torch.cat([x.transpose(0, 1), u.transpose(0, 1)]).transpose(1, 0)
         xudiff = xu - xuref
         Wxudiff = L_hess.mm(xudiff.transpose(0, 1)).transpose(1, 0)
@@ -222,7 +206,7 @@ class PendulumStageCost(torch.nn.Module):
             self.L_hess = self.L_hess.cuda()
         xuref = self.xuref.clone()
         L_hess = self.L_hess.clone()
-        L_hess = self.symmetrize(L_hess)
+        L_hess = utils.symmetrize(L_hess)
         xu = torch.cat([x.transpose(0, 1), u.transpose(0, 1)]).transpose(1, 0)
         xudiff = xu - xuref
         discount = self.gamma**stage
@@ -244,7 +228,7 @@ class PendulumStageCost(torch.nn.Module):
             self.xuref = self.xuref.cuda()
             self.L_hess = self.L_hess.cuda()
         L_hess = self.L_hess.clone()
-        L_hess = self.symmetrize(L_hess)
+        L_hess = utils.symmetrize(L_hess)
         discount = self.gamma**stage
         Qxu = discount * self.dt * torch.stack([L_hess for i in range (x.shape[0])]) 
         return Qxu
