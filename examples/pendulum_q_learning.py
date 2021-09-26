@@ -37,60 +37,63 @@ if __name__ == '__main__':
     # Dynamics and cost params
     inaccurate_pendulum_params = torch.Tensor((1.0, 0.6, 0.6))
     params = PendulumParams(dyn_params=Parameter(inaccurate_pendulum_params.to(device)),
-                            xuref=Parameter(stage_cost.default_xuref.to(device)),
-                            xuweight=Parameter(stage_cost.default_xuweight.to(device)),
-                            xfref=Parameter(terminal_cost.default_xfref.to(device)),
-                            xfweight=Parameter(terminal_cost.default_xfweight.to(device)))
+                            dyn_bias=Parameter(dynamics.default_dyn_bias.to(device)),
+                            # xuref=Parameter(stage_cost.default_xuref.to(device)),
+                            L_hess=Parameter(stage_cost.default_L_hess.to(device)),
+                            L_grad=Parameter(stage_cost.default_L_grad.to(device)),
+                            L_const=Parameter(stage_cost.default_L_const.to(device)),
+                            # xfref=Parameter(terminal_cost.default_xfref.to(device)),
+                            Vf_hess=Parameter(terminal_cost.default_Vf_hess.to(device)),
+                            Vf_grad=Parameter(terminal_cost.default_Vf_grad.to(device)),
+                            Vf_const=Parameter(terminal_cost.default_Vf_const.to(device)))
     mpc.set_params(params)
     print("MPC parameters before Q-learning:")
     print(list(mpc.parameters()))
 
-    # ### Off-policy (off-line) Q-learning 
+    # ### Off-policy Q-learning 
     # loss_fn = torch.nn.MSELoss()
-    # learning_rate = 1.0e-03
-    # optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
-    # maafa.q_learning.train_off_policy(env=model, mpc=mpc, mpc_sim_steps=1, 
-    #                                   mpc_sim_batch_size=16, mpc_iter_max=10, 
-    #                                   train_mini_batch_size=1, 
+    # optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
+    # maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
+    #                                   mpc_sim_steps=math.floor(0.1/dt), 
+    #                                   mpc_sim_batch_size=256, 
+    #                                   mpc_iter_max=10, 
+    #                                   train_mini_batch_size=64, 
     #                                   train_iter_per_episode=20, 
     #                                   loss_fn=loss_fn, 
     #                                   optimizer=optimizer, 
-    #                                   learning_rate=learning_rate,
-    #                                   episodes=100, verbose=True)
+    #                                   episodes=20, verbose=True)
 
-    ### On-policy (on-line) Q-learning 
+    ### On-policy (on-line) Q-learning (the MPC parameters are updated after each MPC step)
     loss_fn = torch.nn.MSELoss()
-    learning_rate = 1.0e-03
-    optimizer = torch.optim.Adam(mpc.parameters(), lr=learning_rate)
+    optimizer = torch.optim.AdamW(mpc.parameters(), lr=1.0e-03, amsgrad=True)
     maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
-                                     mpc_sim_steps=math.floor(5.0/dt), 
-                                     mpc_sim_batch_size=4, 
+                                     mpc_sim_steps=math.floor(0.1/dt), 
+                                     mpc_sim_batch_size=1,
                                      mpc_iter_max=10, 
                                      loss_fn=loss_fn, 
                                      optimizer=optimizer, 
-                                     learning_rate=learning_rate,
-                                     episodes=200, verbose=True)
+                                     episodes=1000, verbose=True)
 
-    print("MPC parameters after Q-learning:")
-    print(list(mpc.parameters()))
+    # print("MPC parameters after Q-learning:")
+    # print(list(mpc.parameters()))
 
     # number of the batch MPC simulations
     nbatch = 16
     mpc.set_nbatch(nbatch)
 
     # initial states
-    x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
+    x0 = model.reset(nbatch, device=device)
 
     # Simulate MPC with learned parameters 
     sim_time = 5.
     sim_step = math.floor(sim_time / dt)
-    MPC_iter_max = 10
+    mpc_iter_max = 10
     x = x0
     tmp_dir = tempfile.mkdtemp()
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
+        u = mpc.mpc_step(x, iter_max=mpc_iter_max)
         x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4

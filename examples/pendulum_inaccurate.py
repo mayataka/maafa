@@ -37,25 +37,22 @@ if __name__ == '__main__':
     stage_cost = PendulumStageCost(dt, discount_factor)
     mpc = maafa.MPC(dynamics, stage_cost, terminal_cost, N, nbatch=nbatch, device=device)
 
-    # initial states
-    x0 = np.pi*torch.rand(nbatch, dynamics.dimx, device=device)
-
     # simulation model
     model = PendulumDynamics(dt)
 
-    # Dynamics and cost params
-    params = PendulumParams()
+    # initial states
+    x0 = model.reset(nbatch, device=device)
 
     # Simulate MPC whose model of the dynamimcal system is inaccurate
     sim_time = 5.
     sim_step = math.floor(sim_time / dt)
-    MPC_iter_max = 10
+    mpc_iter_max = 10
     x = x0
     tmp_dir = tempfile.mkdtemp()
     print('Tmp dir: {}'.format(tmp_dir))
 
     for t in range(sim_step):
-        u = mpc.mpc_step(x, params=params, iter_max=MPC_iter_max)
+        u = mpc.mpc_step(x, iter_max=mpc_iter_max)
         x = model.eval(x, u)
         # save figs
         nrow, ncol = 4, 4

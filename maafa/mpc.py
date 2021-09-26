@@ -34,19 +34,20 @@ class MPC(nn.Module):
     def set_params(self, params):
         self.ocp.set_params(params)
 
+    def check_params(self, eps=1.0e-06):
+        self.ocp.check_params(eps)
 
-    def mpc_step(self, x0, params=None, kkt_tol=1.0e-04, iter_max=100, verbose=False):
+    def mpc_step(self, x0, kkt_tol=1.0e-04, iter_max=100, verbose=False):
         if x0.dim() == 1:
             x0 = x0.unsqueeze(0)
         self.x, self.u, self.lmd = self.ocp.solve(x0=x0, x=self.x, u=self.u, 
-                                                  lmd=self.lmd, params=params, 
-                                                  kkt_tol=kkt_tol, 
+                                                  lmd=self.lmd, kkt_tol=kkt_tol, 
                                                   iter_max=iter_max, 
                                                   verbose=verbose)
         return self.u[0].detach()
 
 
-    def Q_step(self, x0, u0, params=None, kkt_tol=1.0e-04, iter_max=100, verbose=False):
+    def Q_step(self, x0, u0, kkt_tol=1.0e-04, iter_max=100, verbose=False):
         assert x0.dim() == u0.dim()
         if x0.dim() == 1:
             x0 = x0.unsqueeze(0)
@@ -56,12 +57,10 @@ class MPC(nn.Module):
         self.x, self.u, self.lmd, self.gmm, = self.ocp.Q_solve(x0, u0, self.x, 
                                                                self.u, self.lmd, 
                                                                self.gmm, 
-                                                               params=params, 
                                                                kkt_tol=kkt_tol, 
                                                                iter_max=iter_max, 
                                                                verbose=verbose)
 
 
-    def forward(self, x0, u0=None, params=None):
-        return self.ocp.forward(x0, self.x, self.u, self.lmd, params=params, 
-                                u0=u0, gmm=self.gmm)
+    def forward(self, x0, u0=None):
+        return self.ocp.forward(x0, self.x, self.u, self.lmd, u0=u0, gmm=self.gmm)

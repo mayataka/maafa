@@ -30,5 +30,5 @@ MPC-RL is currently implemented as:
 
 Pendulum example (left: before Q-learning, right: after Q-learning)
 
-<img src="https://raw.githubusercontent.com/wiki/mayataka/maafa/images/pendulum_inaccurate.gif" width="250"> &nbsp;
-<img src="https://raw.githubusercontent.com/wiki/mayataka/maafa/images/pendulum_q_learning.gif" width="250">
+<img src="https://raw.githubusercontent.com/wiki/mayataka/maafa/images/pendulum_inaccurate.gif" width="350"> &nbsp;
+<img src="https://raw.githubusercontent.com/wiki/mayataka/maafa/images/pendulum_q_learning.gif" width="350">

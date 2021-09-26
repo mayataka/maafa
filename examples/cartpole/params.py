@@ -1,9 +1,9 @@
 class CartpoleParams(object):
     def __init__(self, dyn_params=None, 
-                 xuref=None, xuweight=None, 
-                 xfref=None, xfweight=None):
+                 xuref=None, L_hess=None, 
+                 xfref=None, Vf_hess=None):
         self.dyn_params = dyn_params
         self.xuref = xuref
-        self.xuweight = xuweight
+        self.L_hess = L_hess
         self.xfref = xfref
-        self.xfweight = xfweight
+        self.Vf_hess = Vf_hess
