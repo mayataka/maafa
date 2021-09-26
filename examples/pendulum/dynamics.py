@@ -39,7 +39,6 @@ class PendulumDynamics(torch.nn.Module):
             self.params = self.params.cuda()
         g, m, l = torch.unbind(self.params)
         g = g.clone()
-        # g = torch.ones(1)
         m = m.clone()
         l = l.clone()
         th = x[:, 0].view(-1, 1)
@@ -66,7 +65,6 @@ class PendulumDynamics(torch.nn.Module):
         nbatch = x.shape[0]
         g, m, l = torch.unbind(self.params)
         g = g.clone()
-        # g = torch.ones(1)
         m = m.clone()
         l = l.clone()
         th = x[:, 0].view(-1, 1)

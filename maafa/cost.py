@@ -34,6 +34,7 @@ class QuadraticTerminalCost(torch.nn.Module):
     def eval(self, x):
         if x.dim() == 1:
             x = x.unsqueeze(0)
+        assert x.dim() == 2
         if x.is_cuda and not self.xfref.is_cuda:
             self.xfref = self.xfref.cuda()
             self.Vf_hess = self.Vf_hess.cuda()
@@ -52,6 +53,7 @@ class QuadraticTerminalCost(torch.nn.Module):
     def eval_sens(self, x):
         if x.dim() == 1:
             x = x.unsqueeze(0)
+        assert x.dim() == 2
         if x.is_cuda and not self.xfref.is_cuda:
             self.xfref = self.xfref.cuda()
             self.Vf_hess = self.Vf_hess.cuda()
@@ -67,6 +69,7 @@ class QuadraticTerminalCost(torch.nn.Module):
     def eval_hess(self, x):
         if x.dim() == 1:
             x = x.unsqueeze(0)
+        assert x.dim() == 2
         if x.is_cuda and not self.xfref.is_cuda:
             self.xfref = self.xfref.cuda()
             self.Vf_hess = self.Vf_hess.cuda()
@@ -115,8 +118,6 @@ class QuadraticStageCost(torch.nn.Module):
             u = u.unsqueeze(0)
         assert x.dim() == 2
         assert x.shape[0] == u.shape[0]
-        assert x.shape[1] == 2
-        assert u.shape[1] == 1
         assert u.dim() == 2
         if x.is_cuda and not self.xuref_true.is_cuda:
             self.xuref_true = self.xuref_true.cuda()
@@ -135,8 +136,6 @@ class QuadraticStageCost(torch.nn.Module):
             u = u.unsqueeze(0)
         assert x.dim() == 2
         assert x.shape[0] == u.shape[0]
-        assert x.shape[1] == 2
-        assert u.shape[1] == 1
         assert u.dim() == 2
         assert stage >= 0
         if x.is_cuda and not self.xuref.is_cuda:
@@ -162,8 +161,6 @@ class QuadraticStageCost(torch.nn.Module):
             u = u.unsqueeze(0)
         assert x.dim() == 2
         assert x.shape[0] == u.shape[0]
-        assert x.shape[1] == 2
-        assert u.shape[1] == 1
         assert u.dim() == 2
         if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()
@@ -185,8 +182,6 @@ class QuadraticStageCost(torch.nn.Module):
             u = u.unsqueeze(0)
         assert x.dim() == 2
         assert x.shape[0] == u.shape[0]
-        assert x.shape[1] == 2
-        assert u.shape[1] == 1
         assert u.dim() == 2
         if x.is_cuda and not self.xuref.is_cuda:
             self.xuref = self.xuref.cuda()

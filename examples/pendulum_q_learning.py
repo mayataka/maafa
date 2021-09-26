@@ -46,7 +46,7 @@ if __name__ == '__main__':
     # optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
     # maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
     #                                   mpc_sim_steps=math.floor(0.1/dt), 
-    #                                   mpc_sim_batch_size=64, 
+    #                                   mpc_sim_batch_size=128, 
     #                                   mpc_iter_max=10, 
     #                                   train_mini_batch_size=4, 
     #                                   train_iter_per_episode=10, 
@@ -58,12 +58,12 @@ if __name__ == '__main__':
     loss_fn = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
     maafa.q_learning.train_on_policy(env=model, mpc=mpc, 
-                                     mpc_sim_steps=math.floor(5.0/dt), 
+                                     mpc_sim_steps=math.floor(1.0/dt), 
                                      mpc_sim_batch_size=1,
                                      mpc_iter_max=10, 
                                      loss_fn=loss_fn, 
                                      optimizer=optimizer, 
-                                     episodes=100, verbose=True)
+                                     episodes=2000, verbose=True)
 
     # print("MPC parameters after Q-learning:")
     # print(list(mpc.parameters()))

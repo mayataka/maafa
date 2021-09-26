@@ -4,7 +4,7 @@ from torch.nn.parameter import Parameter
 
 class PendulumParams(object):
     def __init__(self):
-        # Dynamics parameters 
+        # Dynamics parameters: gravity (g), mass (m), length (l)
         self.dyn_params = Parameter(torch.Tensor([10., 1., 1.]))
         self.dyn_bias = Parameter(torch.Tensor([0., 0.]))
         # Stage cost parameters 
