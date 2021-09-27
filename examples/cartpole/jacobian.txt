@@ -1,0 +1,10 @@
+ddth_y: 0
+ddth_th: (-1.125*m*(g*(M + m)*sin_th - (dth**2*l*m*sin_th + u)*cos_th)*(-(4./3.)*M + m*cos_th**2 - (4./3.)*m)*sin_th*cos_th + (-M + 0.75*m*cos_th**2 - m)**2*(dth**2*l*m*cos_th**2 - g*(M + m)*cos_th - (dth**2*l*m*sin_th + u)*sin_th))/(l*(-(4./3.)*M + m*cos_th**2 - (4./3.)*m)*(-M + 0.75*m*cos_th**2 - m)**2)
+ddth_dy: 0
+ddth_dth: 1.5*dth*m*sin(2*th)/(-2.0*M + 0.75*m*cos(2*th) - 1.25*m)
+ddth_u: cos_th/(l*(-(4./3.)*M + m*cos_th**2 - (4./3.)*m))
+ddy_y: 0
+ddy_th: m*(-(4./3.)*dth**2*l*(1.0*M + 0.75*m*sin_th**2 + 0.25*m)**3*cos_th + 1.125*m*(g*(M + m)*sin_th - (dth**2*l*m*sin_th + u)*cos_th)*(-(4./3.)*M + m*cos_th**2 - (4./3.)*m)*sin_th*cos_th**2 + (-M + 0.75*m*cos_th**2 - m)**2*(-2*M*g*sin_th**2 + M*g - 3*dth**2*l*m*cos_th**3 + 2*dth**2*l*m*cos_th - 2*g*m*sin_th**2 + g*m + 2*u*sin_th*cos_th))/((M + m)*(-(4./3.)*M + m*cos_th**2 - (4./3.)*m)*(-M + 0.75*m*cos_th**2 - m)**2)
+ddy_dy: 0
+ddy_dth: 2.*(4./3.)*dth*l*m*sin_th/((4./3.)*M - 1.0*m*cos_th**2 + (4./3.)*m)
+ddy_u: (4./3.)/((4./3.)*M - 1.0*m*cos_th**2 + (4./3.)*m)
