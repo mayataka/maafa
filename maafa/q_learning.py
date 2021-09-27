@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 
-def mpc_episode(env, mpc, mpc_sim_steps, mpc_sim_batch_size, mpc_iter_max):
+def mpc_epoch(env, mpc, mpc_sim_steps, mpc_sim_batch_size, mpc_iter_max):
     x = env.reset(mpc_sim_batch_size, mpc.device)
     mpc.set_nbatch(mpc_sim_batch_size)
     xm = []
@@ -39,14 +39,14 @@ class MPCSimDataset(Dataset):
 
 def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
                      mpc_iter_max=10, train_mini_batch_size=1, 
-                     train_iter_per_episode=1, loss_fn=None, optimizer=None, 
-                     episodes=100, verbose_level=0, debug=False):
+                     train_iter_per_epoch=1, loss_fn=None, optimizer=None, 
+                     epochs=100, verbose_level=0, debug=False):
     torch.autograd.set_detect_anomaly(debug)
-    for episode in range(episodes):
+    for epoch in range(epochs):
         if verbose_level >= 1:
-            print("----------- Episode:", episode+1, "-----------")
-        xm, um, Lm, xm1 = mpc_episode(env, mpc, mpc_sim_steps, 
-                                      mpc_sim_batch_size, mpc_iter_max)
+            print("----------- Epoch:", epoch+1, "-----------")
+        xm, um, Lm, xm1 = mpc_epoch(env, mpc, mpc_sim_steps, 
+                                    mpc_sim_batch_size, mpc_iter_max)
         mpc_data_set = MPCSimDataset(xm, um, Lm, xm1)
         mpc_data_loader = DataLoader(mpc_data_set, 
                                      batch_size=train_mini_batch_size, 
@@ -56,7 +56,7 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
             loss_fn = torch.nn.MSELoss()
         if optimizer is None:
             optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
-        for iter in range(train_iter_per_episode):
+        for iter in range(train_iter_per_epoch):
             if verbose_level >= 2:
                 TD_errors = []
                 losses = []
@@ -81,7 +81,7 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
                       ", TD error(avg):", sum(TD_errors)/len(TD_errors), 
                       ", loss(avg):", sum(losses)/len(losses))
         if verbose_level >= 1:
-            print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))
+            print("MPC parameters after epoch", epoch+1, ":", list(mpc.parameters()))
 
 
 def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
