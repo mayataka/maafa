@@ -9,7 +9,6 @@ def symmetrize(X):
     return X.triu() + X.triu(1).transpose(-1, -2)
 
 def make_positive_definite(X, eps=1.0e-06):
-    return X
     assert eps >= 0.
     Lmd, V = torch.linalg.eig(X)
     Lmd.real = torch.clamp(Lmd.real, min=eps)

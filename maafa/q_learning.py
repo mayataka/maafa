@@ -40,10 +40,10 @@ class MPCSimDataset(Dataset):
 def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
                      mpc_iter_max=10, train_mini_batch_size=1, 
                      train_iter_per_episode=1, loss_fn=None, optimizer=None, 
-                     episodes=100, verbose=False, debug=False):
+                     episodes=100, verbose_level=0, debug=False):
     torch.autograd.set_detect_anomaly(debug)
     for episode in range(episodes):
-        if verbose:
+        if verbose_level >= 1:
             print("----------- Episode:", episode+1, "-----------")
         xm, um, Lm, xm1 = mpc_episode(env, mpc, mpc_sim_steps, 
                                       mpc_sim_batch_size, mpc_iter_max)
@@ -57,7 +57,7 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
         if optimizer is None:
             optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-03)
         for iter in range(train_iter_per_episode):
-            if verbose:
+            if verbose_level >= 2:
                 TD_errors = []
                 losses = []
             for x, u, L, x1 in mpc_data_loader:
@@ -69,24 +69,24 @@ def train_off_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
                     V = mpc.forward(x1)
                     Q_expect = L + mpc.ocp.stage_cost.gamma * V
                 loss = loss_fn(Q, Q_expect.detach())
-                if verbose:
+                if verbose_level >= 2:
                     TD_errors.append((Q-Q_expect).abs().mean().item())
                     losses.append(loss.item())
                 optimizer.zero_grad()
                 loss.backward(retain_graph=True)
                 optimizer.step()
             mpc.check_params()
-            if verbose:
+            if verbose_level >= 2:
                 print("iter:", iter+1, 
                       ", TD error(avg):", sum(TD_errors)/len(TD_errors), 
                       ", loss(avg):", sum(losses)/len(losses))
-        if verbose:
+        if verbose_level >= 1:
             print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))
 
 
 def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
                           mpc_iter_max=10, loss_fn=None, optimizer=None, 
-                          verbose=False, debug=False):
+                          verbose_level=0, debug=False):
     if loss_fn is None:
         loss_fn = torch.nn.MSELoss()
     if optimizer is None:
@@ -105,7 +105,7 @@ def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
             loss.backward(retain_graph=True)
             optimizer.step()
             mpc.check_params()
-            if verbose:
+            if verbose_level >= 2:
                 print("t:", t, 
                       ", TD error(avg):", (Q-Q_expect).abs().mean().item(), 
                       ", loss(avg):", loss.item())
@@ -118,14 +118,14 @@ def mpc_episode_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1,
 
 def train_on_policy(env, mpc, mpc_sim_steps, mpc_sim_batch_size=1, 
                     mpc_iter_max=10, loss_fn=None, optimizer=None, 
-                    episodes=100, verbose=False, debug=False):
+                    episodes=100, verbose_level=0, debug=False):
     torch.autograd.set_detect_anomaly(debug)
     for episode in range(episodes):
-        if verbose:
+        if verbose_level >= 1:
             print("----------- Episode:", episode+1, "-----------")
         mpc_episode_on_policy(env=env, mpc=mpc, mpc_sim_steps=mpc_sim_steps,
                               mpc_sim_batch_size=mpc_sim_batch_size,
                               mpc_iter_max=mpc_iter_max, loss_fn=loss_fn, 
-                              optimizer=optimizer, verbose=verbose)
-        if verbose:
+                              optimizer=optimizer, verbose_level=verbose_level)
+        if verbose_level >= 1:
             print("MPC parameters after episode", episode+1, ":", list(mpc.parameters()))
