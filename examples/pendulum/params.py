@@ -12,8 +12,8 @@ class PendulumParams(object):
         self.L_hess = Parameter(torch.Tensor([[1., 0., 0.], 
                                               [0., 0.1, 0.], 
                                               [0., 0., 0.001]]))
-        self.L_grad = torch.Tensor([0., 0., 0.])
-        self.L_const = torch.Tensor([0.])
+        self.L_grad = Parameter(torch.Tensor([0., 0., 0.]))
+        self.L_const = Parameter(torch.Tensor([0.]))
         # Terminal cost parameters 
         self.xfref = Parameter(torch.Tensor([0., 0.])) 
         self.Vf_hess =  Parameter(torch.Tensor([[1., 0.], 

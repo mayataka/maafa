@@ -1,5 +1,6 @@
 import torch
 from torch.nn.parameter import Parameter
+import torch_optimizer 
 
 import numpy as np
 import math
@@ -27,8 +28,6 @@ if __name__ == '__main__':
     discount_factor = 0.99 
     params_mpc = PendulumParams()
     params_mpc.dyn_params = Parameter(torch.Tensor([10.0, 0.3, 0.3]))
-    # params_mpc.xfref = params_mpc.xfref.data # do not treat xfref as a learning parameter
-    # params_mpc.xuref = params_mpc.xuref.data # do not treat xuref as a learning parameter
     dynamics = PendulumDynamics(dt, params_mpc)
     terminal_cost = maafa.cost.QuadraticTerminalCost(params_mpc)
     stage_cost = maafa.cost.QuadraticStageCost(dt, discount_factor, params_mpc)
@@ -43,15 +42,16 @@ if __name__ == '__main__':
 
     ### Off-policy Q-learning 
     loss_fn = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-02)
+    # optimizer = torch.optim.Adam(mpc.parameters(), lr=1.0e-02)
+    optimizer = torch_optimizer.AdaBound(mpc.parameters(), lr=1.0e-02, final_lr=1.0)
     maafa.q_learning.train_off_policy(env=model, mpc=mpc, 
                                       mpc_sim_steps=1, 
                                       mpc_sim_batch_size=1028, 
                                       mpc_iter_max=10, 
-                                      train_mini_batch_size=16, 
+                                      train_mini_batch_size=32, 
                                       train_iter_per_epoch=5, 
                                       loss_fn=loss_fn, optimizer=optimizer, 
-                                      epochs=10, verbose_level=2)
+                                      epochs=5, verbose_level=2)
 
     # ### On-policy (on-line) Q-learning (the MPC parameters are updated after the each MPC step)
     # loss_fn = torch.nn.MSELoss()
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     #                                  mpc_sim_batch_size=1,
     #                                  mpc_iter_max=10, 
     #                                  loss_fn=loss_fn, optimizer=optimizer, 
-    #                                  episodes=1000, verbose_level=1)
+    #                                  episodes=100, verbose_level=2)
 
     print("MPC parameters after Q-learning:")
     print(list(mpc.parameters()))

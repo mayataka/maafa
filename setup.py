@@ -10,5 +10,5 @@ setup(
     license="MIT",
     url='https://github.com/mayataka/maafa',
     packages=find_packages(),
-    install_requires=['numpy', 'torch']
+    install_requires=['numpy', 'torch', 'torch_optimizer']
 )
